@@ -1,6 +1,6 @@
 # Python-Game
 1) Nhóm Gameplay (programming game rules & feel)
-Học
+**Học**
 
 Pygame Sprite/Group, vòng lặp game, delta time.
 
@@ -12,7 +12,7 @@ State machine đơn giản (idle/run/jump/fall/hurt); timer (pygame.time.get_tic
 
 Debug: overlay FPS, bật vẽ hitbox, phím reset/teleport.
 
-Chuẩn đầu ra (deliverables)
+**Chuẩn đầu ra (deliverables)**
 
 Player(Sprite) chạy/nhảy mượt; coyote time & jump buffer (khuyến nghị).
 
@@ -26,7 +26,7 @@ Checkpoint/Goal + respawn.
 
 Tất cả nhận dt, không phụ thuộc FPS.
 
-Số liệu “thiết kế” (để phối hợp với Level)
+**Số liệu “thiết kế” (để phối hợp với Level)**
 
 (theo set mặc định: RUN_SPEED=260, JUMP_SPEED=720, GRAVITY=1800)
 
@@ -37,7 +37,7 @@ Nhảy xa tối đa (không gió) ≈ 208 px (~4.3 tiles).
 
 Lối đi cao tối thiểu: 3 tiles trên đầu để không cạ trần khi nhảy.
 
-Checklist chất lượng (DoD)
+**Checklist chất lượng (DoD)**
 
 60 FPS ổn định; thoát bằng ESC; không traceback.
 
@@ -46,7 +46,7 @@ Tất cả va chạm không kẹt góc; không “xuyên tường”.
 Bẫy/địch/coin đều qua Group và spritecollide.
 
 2) Nhóm Level (thiết kế & dựng màn)
-Học
+**Học**
 
 Editor Tiled (TMX) hoặc CSV; layers: Solids, Decor, Entities.
 
@@ -56,7 +56,7 @@ Nguyên lý Trap Adventure: “dạy rồi phản bội”, bẫy trễ, checkpo
 
 Nhịp độ & độ khó: giới hạn gap/độ cao theo số liệu gameplay ở trên.
 
-Chuẩn đầu ra
+**Chuẩn đầu ra**
 
 Level 1 dạy điều khiển + 1–2 bẫy “nhẹ” + coin.
 
@@ -68,7 +68,7 @@ File map + preview (ảnh/GIF 10–20s) + ghi chú “bẫy” (thời gian tr�
 
 Validator cơ bản (nếu Tools chưa xong): script kiểm tra ký tự lạ/điểm spawn thiếu.
 
-Quy tắc dựng trap (gợi ý)
+**Quy tắc dựng trap (gợi ý)**
 
 Bẫy trễ: đặt Trigger 0.3–0.6s sau khi người chơi đi qua mới sinh Spike.
 
@@ -76,14 +76,14 @@ Telegraph nhỏ: gạch hơi lệch màu, âm “tạch” nhỏ; đủ để ng
 
 Checkpoint: sau mỗi “bài học” bẫy ~10–20s gameplay.
 
-DoD
+**DoD**
 
 Mỗi màn clearable trong 2–5 phút; không softlock.
 
 Tôn trọng metrics (gap/ceiling); checkpoint đúng chỗ; không nhảy mù ngoài màn.
 
 3) Nhóm Artist (hình/animation + có thể kiêm audio cơ bản)
-Học
+**Học**
 
 Pixel art 48px grid; xuất PNG trong suốt; căn pivot thống nhất (nhân vật dùng rect.midbottom).
 
@@ -93,7 +93,7 @@ Parallax BG (2–3 lớp); tối ưu: convert() cho ảnh nền, convert_alpha()
 
 (Tuỳ) Âm thanh: WAV/OGG ngắn, loop nhạc.
 
-Chuẩn đầu ra
+**Chuẩn đầu ra**
 
 Tileset 48px: ground/platform/brick/pipe; biến thể để “telegraph” bẫy.
 
@@ -107,7 +107,7 @@ UI: số/biểu tượng đơn giản; title/pause/win.
 
 BG: sky + layer xa (parallax), file lớn có thể tiling.
 
-Thông số/kỹ thuật
+**Thông số/kỹ thuật**
 
 Màu/độ tương phản cao; silhouette rõ.
 
@@ -115,7 +115,7 @@ Export: sprite rời name_0.png… hoặc sheet + .json mô tả frames (nếu c
 
 Âm lượng: nhạc nền nhẹ, SFX ngắn; tránh clip.
 
-DoD
+**DoD**
 
 Khung hình khớp 48px; mép khít (seamless) với tileset.
 
