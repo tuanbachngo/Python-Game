@@ -5,7 +5,7 @@ from sys import exit
 
 pygame.init()
 screen = pygame.display.set_mode((600, 375)) # tạo màn hình game theo kích thước
-pygame.display.set_caption('Ping 1: Adventure') # caption xuất hiện trên màn hình
+pygame.display.set_caption('WorldGame PingPong!') # caption xuất hiện trên màn hình
 clock = pygame.time.Clock()
 font = pygame.font.Font("D:\Python NEU\PixelifySans-VariableFont_wght.ttf", 30) # down font mình muốn về vè copy path paste 
 
