@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trap Adventure - PyGame Hosting</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a3a, #0d1b2a);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            color: #4dabf7;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            color: #adb5bd;
+        }
+        
+        .content {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .panel {
+            flex: 1;
+            min-width: 300px;
+            background: rgba(30, 40, 50, 0.7);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .panel h2 {
+            color: #74c0fc;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #495057;
+        }
+        
+        .game-container {
+            position: relative;
+            width: 100%;
+            height: 480px;
+            background: #000;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #4dabf7;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #339af0;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #1c7ed6;
+            transform: translateY(-2px);
+        }
+        
+        button.secondary {
+            background: #495057;
+        }
+        
+        button.secondary:hover {
+            background: #343a40;
+        }
+        
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        
+        .instructions h3 {
+            color: #74c0fc;
+            margin-bottom: 10px;
+        }
+        
+        .instructions ul {
+            padding-left: 20px;
+            margin-bottom: 10px;
+        }
+        
+        .instructions li {
+            margin-bottom: 5px;
+        }
+        
+        .key {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #495057;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        .upload-area {
+            border: 2px dashed #495057;
+            border-radius: 10px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            border-color: #4dabf7;
+            background: rgba(77, 171, 247, 0.1);
+        }
+        
+        .upload-area p {
+            margin-bottom: 15px;
+        }
+        
+        #file-input {
+            display: none;
+        }
+        
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .feature {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .feature i {
+            font-size: 2rem;
+            color: #4dabf7;
+            margin-bottom: 10px;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #adb5bd;
+            font-size: 0.9rem;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                flex-direction: column;
+            }
+            
+            .panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Trap Adventure</h1>
+            <p class="subtitle">Upload and play your PyGame creations directly in the browser</p>
+        </header>
+        
+        <div class="content">
+            <div class="panel">
+                <h2>Game Preview</h2>
+                <div class="game-container">
+                    <div class="loading" id="loading">
+                        <div class="spinner"></div>
+                        <p>Loading PyGame environment...</p>
+                    </div>
+                    <canvas id="game-canvas"></canvas>
+                </div>
+                
+                <div class="controls">
+                    <button id="play-btn">Play Game</button>
+                    <button id="reset-btn" class="secondary">Reset</button>
+                    <button id="fullscreen-btn" class="secondary">Fullscreen</button>
+                </div>
+                
+                <div class="instructions">
+                    <h3>How to Play</h3>
+                    <ul>
+                        <li>Move: <span class="key">A</span> <span class="key">D</span> or <span class="key">←</span> <span class="key">→</span></li>
+                        <li>Jump: <span class="key">W</span>, <span class="key">↑</span>, or <span class="key">Space</span></li>
+                        <li>Menu: <span class="key">ESC</span></li>
+                        <li>Select: <span class="key">Enter</span></li>
+                        <li>Restart: <span class="key">R</span></li>
+                    </ul>
+                    <p>Avoid traps, reach checkpoints, and complete all levels!</p>
+                </div>
+            </div>
+            
+            <div class="panel">
+                <h2>Upload Your Game</h2>
+                <div class="upload-area" id="upload-area">
+                    <p>Drag & drop your PyGame file here or click to browse</p>
+                    <button id="upload-btn">Select File</button>
+                    <input type="file" id="file-input" accept=".py">
+                </div>
+                
+                <div class="file-info" id="file-info">
+                    <p><strong>File:</strong> <span id="file-name">No file selected</span></p>
+                    <p><strong>Status:</strong> <span id="file-status">Ready to upload</span></p>
+                </div>
+                
+                <div class="instructions">
+                    <h3>Requirements</h3>
+                    <ul>
+                        <li>File must be a valid Python script (.py)</li>
+                        <li>Game should use PyGame library</li>
+                        <li>No external network requests allowed</li>
+                        <li>File size limit: 1MB</li>
+                    </ul>
+                </div>
+                
+                <h2>Platform Features</h2>
+                <div class="features">
+                    <div class="feature">
+                        <i>🚀</i>
+                        <h3>Instant Play</h3>
+                        <p>No installation required</p>
+                    </div>
+                    <div class="feature">
+                        <i>🌐</i>
+                        <h3>Browser-Based</h3>
+                        <p>Works on any device</p>
+                    </div>
+                    <div class="feature">
+                        <i>🔒</i>
+                        <h3>Secure</h3>
+                        <p>Sandboxed environment</p>
+                    </div>
+                    <div class="feature">
+                        <i>📤</i>
+                        <h3>Easy Upload</h3>
+                        <p>Share your creations</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>Powered by Pyodide & PyGame | Trap Adventure Game Hosting Platform</p>
+        </footer>
+    </div>
+
+    <!-- Load Pyodide -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.23.4/full/pyodide.js"></script>
+    
+    <script>
+        // Initialize Pyodide
+        let pyodide;
+        let gameRunning = false;
+        
+        async function initializePyodide() {
+            try {
+                pyodide = await loadPyodide();
+                await pyodide.loadPackage("micropip");
+                const micropip = pyodide.pyimport("micropip");
+                await micropip.install("pygame");
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('play-btn').disabled = false;
+                console.log("Pyodide initialized successfully");
+            } catch (error) {
+                console.error("Error initializing Pyodide:", error);
+                document.getElementById('loading').innerHTML = 
+                    '<p>Error loading PyGame environment. Please refresh the page.</p>';
+            }
+        }
+        
+        // File upload handling
+        document.getElementById('upload-btn').addEventListener('click', () => {
+            document.getElementById('file-input').click();
+        });
+        
+        document.getElementById('file-input').addEventListener('change', handleFileUpload);
+        
+        const uploadArea = document.getElementById('upload-area');
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#4dabf7';
+            uploadArea.style.background = 'rgba(77, 171, 247, 0.2)';
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.style.borderColor = '#495057';
+            uploadArea.style.background = '';
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.style.borderColor = '#495057';
+            uploadArea.style.background = '';
+            
+            if (e.dataTransfer.files.length) {
+                handleFile(e.dataTransfer.files[0]);
+            }
+        });
+        
+        function handleFileUpload(e) {
+            if (e.target.files.length) {
+                handleFile(e.target.files[0]);
+            }
+        }
+        
+        function handleFile(file) {
+            if (!file.name.endsWith('.py')) {
+                alert('Please upload a Python file (.py)');
+                return;
+            }
+            
+            if (file.size > 1024 * 1024) {
+                alert('File size must be less than 1MB');
+                return;
+            }
+            
+            document.getElementById('file-name').textContent = file.name;
+            document.getElementById('file-status').textContent = 'Uploaded successfully';
+            document.getElementById('file-info').style.display = 'block';
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fileContent = e.target.result;
+                // Store the file content for later execution
+                window.uploadedGameCode = fileContent;
+                document.getElementById('play-btn').textContent = 'Play Uploaded Game';
+            };
+            reader.readAsText(file);
+        }
+        
+        // Game controls
+        document.getElementById('play-btn').addEventListener('click', async () => {
+            if (!pyodide) {
+                alert('PyGame environment is still loading. Please wait.');
+                return;
+            }
+            
+            if (gameRunning) {
+                alert('Game is already running!');
+                return;
+            }
+            
+            const gameCode = window.uploadedGameCode || getDefaultGameCode();
+            
+            try {
+                document.getElementById('loading').style.display = 'flex';
+                document.getElementById('play-btn').disabled = true;
+                
+                // Set up the canvas for PyGame
+                const canvas = document.getElementById("game-canvas");
+                canvas.width = 960;
+                canvas.height = 480;
+                
+                // Run the game code
+                await pyodide.runPythonAsync(`
+                    import pygame
+                    import js
+                    from js import document
+                    
+                    # Set up display surface
+                    canvas = document.getElementById("game-canvas")
+                    pygame.display.init()
+                    pygame.display.set_mode((960, 480), pygame.SCALED)
+                    
+                    # Redirect print statements to console
+                    import sys
+                    class JSWriter:
+                        def write(self, text):
+                            if text.strip():
+                                print(text)
+                    sys.stdout = JSWriter()
+                    sys.stderr = JSWriter()
+                `);
+                
+                await pyodide.runPythonAsync(gameCode);
+                
+                gameRunning = true;
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('play-btn').textContent = 'Game Running';
+                
+            } catch (error) {
+                console.error("Error running game:", error);
+                document.getElementById('loading').innerHTML = 
+                    '<p>Error running the game. Please check the console for details.</p>';
+                document.getElementById('play-btn').disabled = false;
+            }
+        });
+        
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            location.reload();
+        });
+        
+        document.getElementById('fullscreen-btn').addEventListener('click', () => {
+            const gameContainer = document.querySelector('.game-container');
+            if (gameContainer.requestFullscreen) {
+                gameContainer.requestFullscreen();
+            } else if (gameContainer.webkitRequestFullscreen) {
+                gameContainer.webkitRequestFullscreen();
+            } else if (gameContainer.msRequestFullscreen) {
+                gameContainer.msRequestFullscreen();
+            }
+        });
+        
+        // Default game code (your PyGame code)
+        function getDefaultGameCode() {
+            // This would be your actual PyGame code
+            // For the demo, we'll use a placeholder
+            return `
+# Trap Adventure - Default Game
+import pygame
+import sys
+
+pygame.init()
+screen = pygame.display.set_mode((960, 480))
+pygame.display.set_caption("Trap Adventure")
+clock = pygame.time.Clock()
+
+# Simple placeholder game
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
+    
+    screen.fill((20, 24, 28))
+    
+    # Draw a simple placeholder
+    font = pygame.font.SysFont(None, 48)
+    text = font.render("Trap Adventure - Upload your game!", True, (240, 240, 240))
+    screen.blit(text, (200, 200))
+    
+    pygame.display.flip()
+    clock.tick(60)
+
+pygame.quit()
+            `;
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('load', initializePyodide);
+    </script>
+</body>
+</html>
