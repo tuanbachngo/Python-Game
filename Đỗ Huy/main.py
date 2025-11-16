@@ -1,5 +1,6 @@
 import sys
 import pygame
+import math
 from pygame import Rect
 
 # ------------------------------
@@ -22,16 +23,16 @@ BG = (20, 24, 28)
 # ------------------------------
 LEVELS = [
     [
-        "####################",
-        "#..................#",
-        "#..................#",
-        "#..................#",
-        "#............#####.#",
-        "#..................#",
-        "#..................#",
-        "#..................#",
-        "#.P.......^.......C.",
-        "####################",
+        "....................",
+        "#..................O",
+        "#..................O",
+        "#..................O",
+        "#..................O",
+        "O..................O",
+        "O..................O",
+        "O..................O",
+        "O...S........P......",
+        "######O#############",
     ],
     [
         "####################",
@@ -69,11 +70,14 @@ def load_frames(sheet_path, frame_w, frame_h, num_frames):
 # ------------------------------
 class Player:
     def __init__(self, x, y):
-        self.rect = Rect(x, y, 32, 48)
+        self.rect = Rect(x-8, y, 32, 48)
         self.vel_x = 0
         self.vel_y = 0
+        self.pos = pygame.Vector2(x, y)
         self.on_ground = False
         self.health = 1
+        self.ori_image = pygame.image.load("E:/Downloads/pygame_assets/mask_state.png").convert_alpha()
+        self.mask = pygame.mask.from_surface(self.ori_image)
         self.facing_right = True
         self.dead = False
 
@@ -122,7 +126,7 @@ class Player:
         self.on_ground = False
         prev_rect = self.rect.copy()
         # ---- DI CHUYỂN NGANG (X) ----
-        self.rect.x += int(self.vel_x)
+        self.rect.x += float(self.vel_x)
         for s in solids:
             if self.rect.colliderect(s.rect):
                 if self.vel_x > 0:  # va phải
@@ -131,7 +135,7 @@ class Player:
                     self.rect.left = s.rect.right
 
         # ---- DI CHUYỂN DỌC (Y) ----
-        self.rect.y += int(self.vel_y)
+        self.rect.y += float(self.vel_y)
         for s in solids:
             if self.rect.colliderect(s):
                 # Rơi xuống và chạm mặt đất
@@ -150,10 +154,13 @@ class Player:
                 if s.rect.colliderect(self.rect.move(0, 1)):
                     self.on_ground = True
                     break
+        self.pos.x = self.rect.centerx
+        self.pos.y = self.rect.centery
 
 
     def update_state(self):
     # Nếu đang nhảy hoặc rơi
+        self.rect.center = (int(self.pos.x), int(self.pos.y))
         if not self.on_ground:
             self.state = "jump"
             self.frame_speed = 0.12
@@ -188,7 +195,7 @@ class Player:
             self.dead = True
 
     def draw(self, surface):
-        surface.blit(self.image, self.rect.topleft)
+        surface.blit(self.image, (self.rect.x-8, self.rect.y))
 
 
 
@@ -197,14 +204,16 @@ class Player:
 # ------------------------------
 class Spike:
     def __init__(self, x, y):
-        self.rect = Rect(x, y, 48, 48)
+        self.rect = Rect(x, y, 36, 36)
         self.image = pygame.image.load("E:/Downloads/pygame_assets/trap-1.png").convert_alpha()
-
+        self.mask = pygame.mask.from_surface(self.image)
     def update(self, player: Player):
         if self.rect.colliderect(player.rect):
+            offset = (player.rect.x - self.rect.x, player.rect.y - self.rect.y)
+            if self.mask.overlap(player.mask, offset):
                 player.health -= 1
     def draw(self, surface):
-        surface.blit(self.image, (self.rect.x, self.rect.y))
+        surface.blit(self.image, (self.rect.x-5, self.rect.y))
 
 # ------------------------------
 # CLASS CHECKPOINT
@@ -228,7 +237,6 @@ class Checkpoint:
 
     def update(self, player: "Player"):
         now = pygame.time.get_ticks()
-
         # --- animation loop ---
         self.frame_index += self.frame_speed
         if self.frame_index >= len(self.frames):
@@ -250,6 +258,90 @@ class Checkpoint:
         surface.blit(self.image, (self.rect.x, self.rect.y))
 
 # ------------------------------
+# CLASS HOVER BOARD
+# ------------------------------
+
+
+# ------------------------------
+# CLASS RISING TIDE
+# ------------------------------
+
+
+# ------------------------------
+# CLASS MOVING WALL
+# ------------------------------
+class Moving_wall:
+    def __init__(self, x, y):
+        self.rect = pygame.Rect(x, y-96, 96, 96)
+        self.image = pygame.image.load("E:/Downloads/pygame_assets/full_moving_wall.png").convert_alpha()
+        self.mask = pygame.mask.from_surface(self.image)
+        self.angle = 90
+        self.pivot = x+48, y
+        self.broken = False
+        self.fallen = False
+        self.trigger_cond = False
+        self.moving_vel = 0.9
+        self.gravity = 0.5
+        self.broken_parts = []
+        self.vels = []
+        self.original_image = self.image
+        self.initial = self.rect.x
+    def trigger(self):
+        if self.trigger_cond == False:
+            return
+        self.rect.x -= self.moving_vel
+        if self.rect.x == self.initial - 191.7:
+            return
+    def fallen_wall(self):
+        if self.fallen:
+            return
+        self.fallen = True
+        rotated_image = pygame.transform.rotate(self.original_image, -90)
+        rotated_rect = rotated_image.get_rect()
+        offset = pygame.Vector2(self.rect.topleft) - self.pivot
+        offset = offset.rotate(90)
+        new_pos = self.pivot + offset
+        self.image = rotated_image
+        self.rect = rotated_rect
+        self.rect.topleft = (new_pos.x, new_pos.y)
+
+    def broken_wall(self):
+        if self.broken:
+            return
+        self.broken = False
+        x , y = self.rect.topleft
+        self.broken_parts = [
+            pygame.Rect(x, y, 96, 48),
+            pygame.Rect(x, y+48, 96, 48),
+            pygame.Rect(x, y+96, 96, 48),
+            pygame.Rect(x, y+144, 96, 48)
+        ]
+        self.vels = [
+            [-5, 10],
+            [10, 5],
+            [-6, 2],
+            [-12, 4]
+        ]
+
+    def update(self, player: Player):
+        if self.broken:
+            for i, rect in enumerate(self.fragments):
+                vx, vy = self.velocities[i]
+                vy += self.gravity
+                rect.x += vx
+                rect.y += vy
+                self.velocities[i][1] = vy
+        if self.rect.colliderect(player.rect):
+            offset = (player.rect.x - self.rect.x, player.rect.y - self.rect.y)
+            if self.mask.overlap(player.mask, offset):
+                player.health -= 1
+        if self.fallen and self.angle < 90:
+            self.angle += 2
+            self.fallen_wall(self.angle)
+    def draw(self, surface):
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+            
+# ------------------------------
 # CLASS BLOCK
 # ------------------------------
 class Block:
@@ -259,14 +351,88 @@ class Block:
 
     def draw(self, surface):
         surface.blit(self.image, (self.rect.x, self.rect.y))
+
+# ------------------------------
+# CLASS CONNECTED_BLOCK
+# ------------------------------
+class Connected_Block:
+    def __init__(self, x, y):
+        self.rect = pygame.Rect(x, y, 48, 48)
+        self.image = pygame.image.load("E:/Downloads/pygame_assets/connected_block.png").convert_alpha()
+
+    def draw(self, surface):
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+
+# ------------------------------
+# CLASS ROLLING_STONE
+# ------------------------------
+
+class Stone:
+    def __init__(self, x, y):
+        self.pos = pygame.Vector2(x-96, y-31)
+        self.vx = 0
+        self.direction = 1
+
+        self.frames = load_frames(
+            "E:/Downloads/pygame_assets/stone.png",
+            frame_w=162, frame_h=159, num_frames=6
+        )
+        self.frame_index = 0
+        self.frame_speed = 0.1
+        self.image = pygame.image.load("E:/Downloads/pygame_assets/stonemask.png").convert_alpha()
+        mask_img = pygame.image.load("E:/Downloads/pygame_assets/stonemask.png").convert_alpha()
+        self.mask = pygame.mask.from_surface(mask_img)
+
+        # rect dựa trên frame đầu tiên
+        self.rect = self.image.get_rect(center=self.pos)
+
+    def update(self, player=None):
+        # Move
+        self.pos.x += self.vx
+        self.rect.center = (self.pos.x, self.pos.y)
+
+        # animation
+        self.frame_index += self.frame_speed
+        if self.frame_index >= len(self.frames):
+            self.frame_index = 0
+        self.image = self.frames[int(self.frame_index)]
+        
+        # collision
+        if player:
+            self.collide_with(player)
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+
+    def collide_with(self, other: Player):
+        if self.rect.colliderect(other.rect):
+            offset = (other.rect.x - self.rect.x, other.rect.y - self.rect.y)
+            if self.mask.overlap(other.mask, offset):
+                other.health -= 1
+
+# ------------------------------
+# CLASS WALL
+# ------------------------------
+class Wall:
+    def __init__(self, x, y):
+        self.rect = pygame.Rect(x, y, 48, 19)
+        self.image = pygame.image.load("E:/Downloads/pygame_assets/wall.png").convert_alpha()
+
+    def draw(self, surface):
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+
 # ------------------------------
 # CLASS WORLD
 # ------------------------------
 class World:
     def __init__(self, ascii_map, bg_path=None):
         self.blocks = []
+        self.walls = []
+        self.stones = []
         self.spikes = []
+        self.c_block = []
         self.checkpoints = []
+        self.moving_walls = []
         self.player_start = (64, 64)
 
         if bg_path:
@@ -281,7 +447,15 @@ class World:
                     self.blocks.append(Block(x, y))
                 elif ch == '^':
                     self.spikes.append(Spike(x, y))
-                elif ch == 'P':
+                elif ch == 'W':
+                    self.walls.append(Wall(x, y))
+                elif ch == 'S':
+                    self.stones.append(Stone(x, y))
+                elif ch == 'O':
+                    self.c_block.append(Connected_Block(x, y))
+                elif ch == 'M':
+                    self.moving_walls.append(Moving_wall(x, y))
+                elif ch == 'O':
                     self.player_start = (x, y)
                 elif ch == 'C':
                     self.checkpoints.append(Checkpoint(x, y))
@@ -289,13 +463,15 @@ class World:
         self.player = Player(*self.player_start)
 
     def solids(self):
-        return self.blocks
+        return self.blocks + self.walls + self.c_block
 
     def update(self):
         for sp in self.spikes:
             sp.update(self.player)
         for cp in self.checkpoints:
             cp.update(self.player)
+        for st in self.stones:
+            st.update(self.player)
 
     def draw_background(self, surface):
         if self.bg_image:
@@ -303,10 +479,18 @@ class World:
     def draw(self, surface):
         for b in self.blocks:
             b.draw(surface)
+        for w in self.walls:
+            w.draw(surface)
         for sp in self.spikes:
             sp.draw(surface)
+        for st in self.stones:
+            st.draw(surface)
         for cp in self.checkpoints:
             cp.draw(surface)
+        for mw in self.moving_walls:
+            mw.draw(surface)
+        for cb in self.c_block:
+            cb.draw(surface)
         self.player.draw(surface)
 
 # ------------------------------
@@ -336,7 +520,6 @@ def run():
                 running = False
         world.update()
         keys = pygame.key.get_pressed()
-
         player = world.player
         player.handle_input(keys)
         player.apply_gravity()
@@ -352,18 +535,22 @@ def run():
         else:
             player.update_death_animation()
         if player.dead and keys[pygame.K_r]:
-            world = restart()
+            world = restart(current_level_index)
             player.dead = False
 
     # DRAW
         world.draw_background(screen)
         world.draw(screen)
-
-        health_surf = font.render(f"Health: {player.health}", True, WHITE)
-        screen.blit(health_surf, (16,16))
-
         pygame.display.flip()
 
 
 if __name__ == "__main__":
     run()
+
+
+
+###Level 3 sẽ dùng camera, nhân vật phải bơi xuống dưới nước, chạm vào 1 trigger khiến mặt nước đóng băng từ từ từ dưới lên, bơi lên trên, quay lại bờ, rồi đi qua mặt nước đóng băng, chạm checkpoint -> win
+
+###level 2: đá lăn, moving wall, spike
+
+###3 mạng cho player, nếu hết mạng thì game over chơi lại từ đầu
