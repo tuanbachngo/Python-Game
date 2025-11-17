@@ -11,7 +11,7 @@ TILE = 48
 
 GRAVITY = 0.32
 MAX_FALL = 14
-PLAYER_SPEED = 3
+PLAYER_SPEED = 2
 JUMP_VEL = 9
 
 WHITE = (240, 240, 240)
@@ -28,10 +28,10 @@ LEVELS = [
         "#..................#",
         "#..................#",
         "#..................#",
-        "#.............M....#",
-        "#.P.....#............",
-        "##########....#..H.C",
-        "##########^^^^^^^###",
+        "#..................#",
+        "#....M......L......#",
+        "#.P................C",
+        "###^^^^^^^^^^^^^^###",
         "####################",
     ],
     [
@@ -139,6 +139,9 @@ class MenuManager:
         self.selected_index = 0
         self.current_menu = "main"  
 
+        self.main_menu_rects = []
+        self.difficulty_rects = []
+
     def draw_main_menu(self, surface):
         # Background baby blue
         surface.fill(self.bg_color)
@@ -147,7 +150,8 @@ class MenuManager:
         title_text = self.font_large.render("TRAP ADVENTURE", True, self.title_color)
         title_rect = title_text.get_rect(center=(self.screen_width//2, 120))
         surface.blit(title_text, title_rect)
-        
+        self.main_menu_rects = []
+
         # Menu options
         for i, option in enumerate(self.main_menu_options):
             # Màu đen cho option được chọn, trắng cho option bình thường
@@ -156,6 +160,8 @@ class MenuManager:
             rect = text.get_rect(center=(self.screen_width//2, 250 + i * 70))
             surface.blit(text, rect)
             
+            self.main_menu_rects.append(rect)
+
             # Indicator - màu đen
             if i == self.selected_index:
                 indicator = ">"
@@ -170,33 +176,31 @@ class MenuManager:
         title_text = self.font_medium.render("SELECT DIFFICULTY", True, self.title_color)
         title_rect = title_text.get_rect(center=(self.screen_width//2, 100))
         surface.blit(title_text, title_rect)
-        
+        self.difficulty_rects = []
         # Difficulty options
         for i, difficulty in enumerate(self.difficulty_options):
-            # Màu cho option được chọn và option hiện tại
             if i == self.selected_index:
-                color = self.selected_color  # Đen cho option đang chọn
+                color = self.selected_color  
             elif difficulty == current_difficulty:
-                color = self.highlight_color  # Xanh đậm cho độ khó hiện tại
+                color = self.highlight_color  
             else:
-                color = self.normal_color  # Trắng cho option bình thường
+                color = self.normal_color 
             
             text = self.font_medium.render(difficulty, True, color)
             rect = text.get_rect(center=(self.screen_width//2, 200 + i * 80))
             surface.blit(text, rect)
             
-            # Mô tả độ khó - màu xám đậm
+            self.difficulty_rects.append(rect)
+
             desc_text = self.font_small.render(self.difficulty_descriptions[difficulty], True, self.help_color)
             desc_rect = desc_text.get_rect(center=(self.screen_width//2, 230 + i * 80))
             surface.blit(desc_text, desc_rect)
-            
-            # Indicator - màu đen
+
             if i == self.selected_index:
                 indicator = ">>"
                 indicator_text = self.font_medium.render(indicator, True, self.selected_color)
                 surface.blit(indicator_text, (rect.left - 60, rect.y))
 
-        # Hướng dẫn - màu xám đậm
         help_text = self.font_small.render("ENTER: Select  |  ESC: Back", True, self.help_color)
         help_rect = help_text.get_rect(center=(self.screen_width//2, self.screen_height - 50))
         surface.blit(help_text, help_rect)
@@ -207,7 +211,61 @@ class MenuManager:
         else:
             self.draw_difficulty_menu(surface, current_difficulty)
 
+    def handle_mouse_hover(self, mouse_pos):
+        """Highlight option khi di chuột qua"""
+        if self.current_menu == "main":
+            for i, rect in enumerate(self.main_menu_rects):
+                if rect.collidepoint(mouse_pos):
+                    self.selected_index = i
+                    break
+        else:  # difficulty menu
+            for i, rect in enumerate(self.difficulty_rects):
+                if rect.collidepoint(mouse_pos):
+                    self.selected_index = i
+                    break
+
+    def handle_main_menu_mouse(self, mouse_pos, settings):
+        """Xử lý click chuột trên main menu"""
+        for i, rect in enumerate(self.main_menu_rects):
+            if rect.collidepoint(mouse_pos):
+                self.selected_index = i
+                
+                option = self.main_menu_options[i]
+                if option == "START GAME":
+                    return "start_game"
+                elif option == "DIFFICULTY":
+                    self.current_menu = "difficulty"
+                    self.selected_index = self.difficulty_options.index(settings.difficulty)
+                elif option == "QUIT":
+                    return "quit"
+        return None
+
+    def handle_difficulty_mouse(self, mouse_pos, settings):
+        """Xử lý click chuột trên difficulty menu"""
+        for i, rect in enumerate(self.difficulty_rects):
+            if rect.collidepoint(mouse_pos):
+                self.selected_index = i
+                settings.difficulty = self.difficulty_options[i]
+                settings.apply_difficulty()
+                self.current_menu = "main"
+                self.selected_index = 1
+                return None
+        return None
+
     def handle_input(self, event, settings):
+        """Xử lý cả bàn phím và chuột"""
+        # Xử lý hover chuột
+        if event.type == pygame.MOUSEMOTION:
+            self.handle_mouse_hover(event.pos)
+        
+        # Xử lý click chuột
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Click trái
+            if self.current_menu == "main":
+                return self.handle_main_menu_mouse(event.pos, settings)
+            else:
+                return self.handle_difficulty_mouse(event.pos, settings)
+        
+        # Xử lý bàn phím
         if event.type == pygame.KEYDOWN:
             if self.current_menu == "main":
                 return self.handle_main_menu_input(event, settings)
@@ -265,20 +323,18 @@ class HUD:
     def draw_ingame_hud(self, surface, current_level, total_levels):
         # Tạo chuỗi thông tin trên 1 dòng
         info_text = f"Health: {self.player.health} | Level: {current_level + 1}/{total_levels} | Difficulty: {self.settings.difficulty}"
-        
-        # Render text với màu đen
-        text_surf = self.font.render(info_text, True, (0, 0, 0))  # Màu đen
+
+        text_surf = self.font.render(info_text, True, (0, 0, 0))  
         
         # Vẽ background cho HUD (cách viền 60px cả trên và trái)
         bg_x = 60  # Cách trái 60px
         bg_y = 60  # Cách trên 60px
         bg_rect = pygame.Rect(bg_x, bg_y, text_surf.get_width() + 20, text_surf.get_height() + 10)
-        pygame.draw.rect(surface, (255, 255, 255, 180), bg_rect)  # Màu trắng trong suốt
-        pygame.draw.rect(surface, (0, 0, 0), bg_rect, 2)  # Viền đen
+        pygame.draw.rect(surface, (255, 255, 255, 180), bg_rect)
+        pygame.draw.rect(surface, (0, 0, 0), bg_rect, 2) 
         
-        # Vẽ text lên surface (cách viền 60px + thêm padding 10px bên trong)
-        text_x = bg_x + 10  # 60px + 10px padding
-        text_y = bg_y + 5   # 60px + 5px padding
+        text_x = bg_x + 10 
+        text_y = bg_y + 5   
         surface.blit(text_surf, (text_x, text_y))
     
     def draw_menu(self, surface):
@@ -301,6 +357,7 @@ class Player:
         self.mask = pygame.mask.from_surface(self.ori_image)
         self.facing_right = True
         self.dead = False
+        self.moved_by_platform = False
 
         # --- Animation frames ---
         self.animations = {
@@ -343,21 +400,27 @@ class Player:
         self.vel_y = min(self.vel_y + GRAVITY, MAX_FALL)
 
     def move_and_collide(self, solids):
-        # Mặc định là không chạm đất
+        # Reset flag
+        self.moved_by_platform = False
         self.on_ground = False
         prev_rect = self.rect.copy()
         
         # ---- DI CHUYỂN NGANG (X) ----
         self.rect.x += float(self.vel_x)
-        for s in solids:
-            if self.rect.colliderect(s.rect):
-                if self.vel_x > 0:  # va phải
-                    self.rect.right = s.rect.left
-                elif self.vel_x < 0:  # va trái
-                    self.rect.left = s.rect.right
+        
+        # CHỈ kiểm tra va chạm ngang nếu KHÔNG được platform di chuyển
+        if not self.moved_by_platform:
+            for s in solids:
+                if self.rect.colliderect(s.rect):
+                    if self.vel_x > 0:  # va phải
+                        self.rect.right = s.rect.left
+                    elif self.vel_x < 0:  # va trái
+                        self.rect.left = s.rect.right
 
         # ---- DI CHUYỂN DỌC (Y) ----
         self.rect.y += float(self.vel_y)
+        moving_platform = None
+        
         for s in solids:
             if self.rect.colliderect(s.rect):
                 # Rơi xuống và chạm mặt đất
@@ -365,39 +428,37 @@ class Player:
                     self.rect.bottom = s.rect.top
                     self.vel_y = 0
                     self.on_ground = True
-                    # THÊM: Xử lý platform di chuyển
-                    if hasattr(s, 'get_velocity'):  # Kiểm tra nếu là platform di chuyển
-                        vel = s.get_velocity()
-                        self.rect.x += float(vel.x)
-                        self.rect.y += float(vel.y)
+                    
+                    # KIỂM TRA CÓ PHẢI MOVING PLATFORM KHÔNG
+                    if hasattr(s, 'get_velocity'):
+                        moving_platform = s
+                        
                 # Nhảy lên và đụng trần
                 elif prev_rect.top >= s.rect.bottom and self.vel_y <= 0:
                     self.rect.top = s.rect.bottom
                     self.vel_y = 0
 
-        # ---- CHECK NỀN DƯỚI CHÂN ----
+        # ---- XỬ LÝ MOVING PLATFORM SAU KHI DI CHUYỂN ----
+        if moving_platform and self.on_ground:
+            vel = moving_platform.get_velocity()
+            # CHỈ di chuyển player nếu platform thực sự di chuyển
+            if abs(vel.x) > 0 or abs(vel.y) > 0:
+                # ĐÁNH DẤU player đang được platform di chuyển
+                self.moved_by_platform = True
+                self.rect.x += float(vel.x)
+                self.rect.y += float(vel.y)
+
+        # ---- KIỂM TRA NỀN DƯỚI CHÂN ----
         if not self.on_ground:
+            check_distance = min(int(self.vel_y + GRAVITY) + 2, 10)
             for s in solids:
-                if s.rect.colliderect(self.rect.move(0, 1)):
+                if s.rect.colliderect(self.rect.move(0, check_distance)):
                     self.on_ground = True
                     break
         
-        # Cập nhật vector vị trí từ rect (giữ nguyên của code 2)
+        # Cập nhật vector vị trí từ rect
         self.pos.x = self.rect.centerx
         self.pos.y = self.rect.centery
-
-    # Nếu đang nhảy hoặc rơi
-        self.rect.center = (int(self.pos.x), int(self.pos.y))
-        if not self.on_ground:
-            self.state = "jump"
-            self.frame_speed = 0.12
-        else:
-            if abs(self.vel_x) > 0.1:
-                self.state = "run"
-                self.frame_speed = 0.15
-            else:
-                self.state = "idle"
-                self.frame_speed = 0.6
 
     def update_state(self):
     # Nếu đang nhảy hoặc rơi
@@ -580,33 +641,58 @@ class Block:
 # CLASS PLATFORM
 # ------------------------------
 class MovingPlatform(Block):
-    def __init__(self, x, y, dx=2, dy=0, move_range=100):
+    def __init__(self, x, y, dx=2, dy=0, move_range=100, world_ref=None):
         super().__init__(x, y)
         self.start_x = x
         self.start_y = y
-        self.dx = dx      # tốc độ di chuyển theo trục X
-        self.dy = dy      # tốc độ di chuyển theo trục Y
+        self.dx = dx
+        self.dy = dy
         self.move_range = move_range
         self.direction = 1
-        self.prev_pos = pygame.Vector2(self.rect.x, self.rect.y) # lưu lại vị trí của platform ở frame trước
+        self.prev_pos = pygame.Vector2(self.rect.x, self.rect.y)
+        self.world_ref = world_ref
+        self.current_velocity = pygame.Vector2(0, 0)
+        # THÊM: lưu vận tốc dự kiến cho frame tiếp theo
+        self.next_velocity = pygame.Vector2(dx * self.direction, dy * self.direction)
+    
     def update(self):
-        # Lưu vị trí cũ để tính độ dịch chuyển
+        # Lưu vị trí cũ
         self.prev_pos.update(self.rect.x, self.rect.y)
+        old_x, old_y = self.rect.x, self.rect.y
 
-        # Cập nhật vị trí
-        self.rect.x += self.dx * self.direction
-        self.rect.y += self.dy * self.direction
+        # Tính toán vận tốc cho frame NÀY
+        self.next_velocity = pygame.Vector2(
+            self.dx * self.direction, 
+            self.dy * self.direction
+        )
+        
+        # Di chuyển
+        self.rect.x += self.next_velocity.x
+        self.rect.y += self.next_velocity.y
 
-        # Nếu vượt quá phạm vi di chuyển thì đảo hướng
-        if abs(self.rect.x - self.start_x) >= self.move_range or abs(self.rect.y - self.start_y) >= self.move_range:
+        # Kiểm tra va chạm
+        if self.world_ref and self.check_collision_with_blocks():
+            self.rect.x, self.rect.y = old_x, old_y
             self.direction *= -1
+            # Cập nhật lại vận tốc sau khi đổi hướng
+            self.next_velocity = pygame.Vector2(
+                self.dx * self.direction, 
+                self.dy * self.direction
+            )
+        elif abs(self.rect.x - self.start_x) >= self.move_range or abs(self.rect.y - self.start_y) >= self.move_range:
+            self.direction *= -1
+            self.next_velocity = pygame.Vector2(
+                self.dx * self.direction, 
+                self.dy * self.direction
+            )
+
+        # Tính vận tốc thực tế
+        self.current_velocity.x = self.rect.x - self.prev_pos.x
+        self.current_velocity.y = self.rect.y - self.prev_pos.y
 
     def get_velocity(self):
-        # Trả về độ dịch chuyển của platform giữa 2 frame
-        return pygame.Vector2(self.rect.x - self.prev_pos.x, self.rect.y - self.prev_pos.y)
-
-    def draw(self, surface):
-        surface.blit(self.image, (self.rect.x, self.rect.y))  
+        # Trả về vận tốc sẽ di chuyển trong frame TIẾP THEO
+        return self.next_velocity 
 # ------------------------------
 # CLASS WORLD
 # ------------------------------
@@ -636,8 +722,10 @@ class World:
                 elif ch == 'C':
                     self.checkpoints.append(Checkpoint(x, y,world_ref=self, level_id = level_id))
                 elif ch == 'M':
-                    self.blocks.append(MovingPlatform(x,y,dx=2,dy=1,move_range=150))
-                elif ch == 'H':  # bẫy ẩn
+                    self.blocks.append(MovingPlatform(x,y,dx=2,dy=0,move_range=150))
+                elif ch == 'L':
+                    self.blocks.append(MovingPlatform(x,y,dx=-2,dy=0,move_range=150))
+                elif ch == 'H':
                     self.spikes.append(HiddenSpike(x, y))   
         self.player = Player(*self.player_start, initial_health=player_health)
 
@@ -730,12 +818,12 @@ def run():
         # Gameplay
         if game_state == "playing" and world:
             keys = pygame.key.get_pressed()
-            
-            world.update()
+
             world.player.handle_input(keys)
             world.player.apply_gravity()
             world.player.move_and_collide(world.solids())
-            
+            world.update()
+
             # Xử lý checkpoint - CHỈ cho phép chuyển level nếu chưa vượt quá số level cho phép
             max_levels = settings.get_max_levels()
             for cp in world.checkpoints:
