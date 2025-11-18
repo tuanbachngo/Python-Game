@@ -1,600 +1,849 @@
-import sys, math, pygame, os
+import pygame
 from pygame import Rect
-
-ASSETS = {}
-
-def load_image(path, scale=None):
-    img = pygame.image.load(path).convert_alpha()
-    if scale:
-        img = pygame.transform.smoothscale(img, scale)
-    return img
-
-def try_load(path, scale=None):
-    return load_image(path, scale) if os.path.exists(path) else None
-
-def load_sheet_horz(path, frame_w=None, frame_h=None, scale=None):
-    """Cắt spritesheet ghép NGANG thành list frame.
-    Mặc định mỗi frame là hình vuông có cạnh = chiều cao ảnh."""
-    surf = try_load(path)
-    if not surf:
-        return []
-    w, h = surf.get_width(), surf.get_height()
-    if frame_h is None:
-        frame_h = h
-    if frame_w is None:
-        frame_w = frame_h  # frame vuông
-    frames = []
-    x = 0
-    while x + frame_w <= w:
-        frame = surf.subsurface((x, 0, frame_w, frame_h)).copy()
-        if scale:
-            frame = pygame.transform.smoothscale(frame, scale)
-        frames.append(frame)
-        x += frame_w
-    return frames
-
-def load_assets():
-    base = os.path.join(os.path.dirname(__file__), "assets")
-    a = {}
-    # Tiles
-    a["tile_block"]    = try_load(os.path.join(base, "tiles", "block.png"), (TILE, TILE))
-    a["tile_platform"] = try_load(os.path.join(base, "tiles", "platform.png"), (TILE, TILE))
-    a["tile_spike_up"] = try_load(os.path.join(base, "tiles", "spike_up.png"), (TILE, TILE)) \
-                         or try_load(os.path.join(base, "tiles", "spike.png"), (TILE, TILE))  # fallback
-    # Props
-    a["goal"] = try_load(os.path.join(base, "props", "door.png"), (TILE, TILE))
-    # Background
-    a["bg_sky"]   = try_load(os.path.join(base, "bg", "bg_sky.png"), (WIDTH, HEIGHT))
-    a["bg_hills"] = try_load(os.path.join(base, "bg", "bg_hills.png"))  # parallax, không scale
-
-    # Player (ưu tiên spritesheet; nếu thiếu thì fallback về file lẻ)
-    a["player_idle"] = load_sheet_horz(os.path.join(base, "player", "idle_sheet.png"), 48, 48, None) \
-        or [p for p in [try_load(os.path.join(base, "player", "idle_0.png"))] if p]
-    a["player_run"]  = load_sheet_horz(os.path.join(base, "player", "run_sheet.png"), 48, 48, None) \
-        or [img for i in range(4) if (img := try_load(os.path.join(base, "player", f"run_{i}.png")))]
-    a["player_jump"] = load_sheet_horz(os.path.join(base, "player", "jump_sheet.png"), 48, 48, None) \
-        or [img for i in range(2) if (img := try_load(os.path.join(base, "player", f"jump_{i}.png")))]
-    a["player_dead"] = load_sheet_horz(os.path.join(base, "player", "dead_sheet.png"), 48, 48, None) \
-        or [img for i in range(7) if (img := try_load(os.path.join(base, "player", f"dead_{i}.png")))]
-
-    # FX sheets (tùy chọn, nếu không có sẽ bỏ qua)
-    a["fx_jump"] = load_sheet_horz(os.path.join(base, "extras", "jumping-effect-sheet.png"), 32, 32, None)
-    a["fx_fly"]  = load_sheet_horz(os.path.join(base, "extras", "running-effect-sheet.png"), 32, 32, None)
-    a["fx_die"]  = load_sheet_horz(os.path.join(base, "extras", "dying-effect-sheet.png"),   32, 32, None)
-
-    # Fallback: nếu thiếu platform.png thì dùng luôn block.png để đỡ vỡ hình
-    if not a.get("tile_platform") and a.get("tile_block"):
-        a["tile_platform"] = a["tile_block"]
-    return a
-
+from pathlib import Path
+import sys
 # ------------------------------
 # CÀI ĐẶT CƠ BẢN
 # ------------------------------
-WIDTH, HEIGHT = 960, 540
+WIDTH, HEIGHT = 960, 480
 FPS = 60
 TILE = 48
-# ------------------------------
-# Vật lý đơn giản
+
 GRAVITY = 0.32
-#Gia tốc rơi. Mỗi frame, vận tốc dọc tăng thêm 0.6 px/frame (hướng xuống).
-#Tăng số này → rơi nhanh, nhảy “nặng”.
-#Giảm → rơi chậm, cảm giác “floaty”.
 MAX_FALL = 14
-#Giới hạn vận tốc rơi tối đa (terminal velocity).
-#Giúp tránh tăng tốc vô hạn khi rơi xa; ổn định va chạm.
-#Quá thấp → rơi lơ lửng; quá cao → dễ “đâm xuyên” nếu code va chạm không tách trục kỹ.
-PLAYER_SPEED = 4.2
-JUMP_VEL = -13
-#Vận tốc nhảy ban đầu (âm = hướng lên). Ở 60 FPS → -12×60 = -720 px/s.
-#|giá trị| lớn hơn → nhảy vút cao hơn; nhỏ hơn → nhảy thấp.
-COYOTE_MS = 110  # nhảy "cứu cánh" sau khi rời đất ~0.12s
-#“Coyote time”: khoảng thời gian sau khi rời đất vẫn cho phép nhảy.
-#120 ms ≈ 7 frames ở 60 FPS (120/1000×60 ≈ 7.2).
-#Tăng chút giúp điều khiển “bám tay”; quá nhiều thì cảm giác gian lận.
-# ------------------------------
-# Màu sắc
-BG = (20, 24, 28)
+PLAYER_SPEED = 2
+JUMP_VEL = 9
+
 WHITE = (240, 240, 240)
-GREY = (120, 128, 140)
-GREEN = (80, 200, 120)
-RED = (220, 60, 80)
-YELLOW = (250, 210, 90)
-CYAN = (100, 210, 230)
-BROWN = (120, 90, 60)
-ORANGE = (240, 150, 60)
+BG = (20, 24, 28)
 # ------------------------------
-# BẢN ĐỒ ASCII (có thể chỉnh sửa dễ dàng)
-# Ký hiệu:
-#   # : khối đất/đá rắn (solid)
-#   . : khoảng trống
-#   P : vị trí người chơi bắt đầu
-#   G : đích/goal
-#   ^ : gai luôn hoạt động (chạm là chết)
-#   T : bẫy kích hoạt ẩn (đi vào mới bật gai sau 0.25s)
-#   F : nền rơi (đứng lên một lúc sẽ rơi)
+# HÀM TẢI ASSET 
 # ------------------------------
-# Thêm: 'M' = moving platform ngang (qua lại 144px, 2 px/frame)
-LEVEL_MAP = [
-    "########################",  # 24 cột => 24 * 48 = 1152px (có cuộn màn hình)
-    "#.......................",
-    "#......................",
-    "#.......................",
-    "#..P..............T.....",
-    "#..................T....",
-    "#..............F....G...",
-    "#.......................",
-    "#.......................",
-    "###############^^^^^^^^^#",
-    "########################",
+if getattr(sys, 'frozen', False):
+    BASE_DIR = Path(sys._MEIPASS)
+else:
+    BASE_DIR = Path(__file__).parent
+
+ASSETS_DIR = BASE_DIR / "pygame_assets"
+
+def asset(name: str) -> str:
+    return str(ASSETS_DIR / name)
+# ------------------------------
+# BẢN ĐỒ ASCII
+# ------------------------------
+LEVELS = [
+    [
+        "####################",
+        "#..................#",
+        "#..................#",
+        "#..................#",
+        "#..................#",
+        "#..................#",
+        "#..................#",
+        "#....M......L......#",
+        "#.P................C",
+        "###^^^^^^^^^^^^^^###",
+        "####################",
+    ],
+    [
+        "####################",
+        "#..................#",
+        "#..^...............#",
+        "#...........#####..#",
+        "#..................#",
+        "#......P...........#",
+        "#..........^.......#",
+        "#..............C...#",
+        "#..................#",
+        "####################",
+        
+    ]
+]
+
+
+LEVEL_BGS = [
+    asset("bg-1.png"),
+    asset("bg-2.png"),
+    asset("bg-3.png"),
 ]
 # ------------------------------
-# HỖ TRỢ VẼ
+# HÀM LOAD FRAME
 # ------------------------------
-def draw_block(surface, rect, offset_x):
-    r = Rect(rect.x - offset_x, rect.y, rect.w, rect.h)
-    img = ASSETS.get("tile_block")
-    if img:
-        surface.blit(img, r.topleft)
-    else:
-        pygame.draw.rect(surface, (120, 90, 60), r)
-        pygame.draw.rect(surface, (0, 0, 0), r, 2)
-
-def draw_platform(surface, rect, offset_x):
-    r = Rect(rect.x - offset_x, rect.y, rect.w, rect.h)
-    img = ASSETS.get("tile_platform")
-    if img:
-        surface.blit(img, r.topleft)
-    else:
-        pygame.draw.rect(surface, (150, 120, 90), r)
-        pygame.draw.line(surface, (0, 0, 0), (r.left, r.top), (r.right, r.top), 2)
-        pygame.draw.rect(surface, (0, 0, 0), r, 2)
-
-def draw_spike_up(surface, rect, offset_x, active: bool):
-    r = Rect(rect.x - offset_x, rect.y - TILE//2, TILE, TILE)  # hình ảnh full tile
-    img = ASSETS.get("tile_spike_up")
-    if img:
-        surface.blit(img, r.topleft)
-    else:
-        # fallback tam giác
-        x1, y1 = r.left, r.bottom
-        x2, y2 = r.centerx, r.top
-        x3, y3 = r.right, r.bottom
-        color = RED if active else GREY
-        pygame.draw.polygon(surface, color, [(x1, y1), (x2, y2), (x3, y3)])
-        pygame.draw.polygon(surface, (0, 0, 0), [(x1, y1), (x2, y2), (x3, y3)], 2)
-
-def draw_goal(surface, rect, offset_x):
-    r = Rect(rect.x - offset_x, rect.y, rect.w, rect.h)
-    img = ASSETS.get("goal")
-    if img:
-        surface.blit(img, r.topleft)
-    else:
-        r2 = Rect(r.x + 6, r.y + 6, r.w - 12, r.h - 12)
-        pygame.draw.rect(surface, (60, 80, 160), r2, border_radius=6)
-        pygame.draw.rect(surface, (20, 30, 80), r2, 3, border_radius=6)
-        knob = Rect(r2.right - 16, r2.centery - 4, 8, 8)
-        pygame.draw.rect(surface, YELLOW, knob, border_radius=4)
-
-def draw(self, screen, scroll_x):
-    now = pygame.time.get_ticks()
-    if not self.alive:
-        frames = ASSETS["player_dead"]
-        idx = min(self.current_frame, max(0, len(frames)-1))
-        img = frames[idx] if frames else None
-    elif not self.on_ground:
-        frames = ASSETS["player_jump"]
-        img = frames[(now // 100) % len(frames)] if frames else None
-    elif self.is_running:
-        frames = ASSETS["player_run"]
-        img = frames[(now // 90) % len(frames)] if frames else None
-    else:
-        frames = ASSETS["player_idle"]
-        img = frames[(now // 120) % len(frames)] if frames else None
-
-    if img is None:
-        return  # thiếu asset thì thôi
-
-    if self.direction == -1:
-        img = pygame.transform.flip(img, True, False)
-
-    screen.blit(img, (self.rect.x - scroll_x - 8, self.rect.y - 6))
+def load_frames(sheet_path, frame_w, frame_h, num_frames):
+    sheet = pygame.image.load(sheet_path).convert_alpha()
+    frames = []
+    for i in range(num_frames):
+        frame = pygame.Surface((frame_w, frame_h), pygame.SRCALPHA)
+        frame.blit(sheet, (0, 0), pygame.Rect(i*frame_w, 0, frame_w, frame_h))
+        frames.append(frame)
+    return frames
 # ------------------------------
-# THỰC THỂ TRÒ CHƠI
+# CLASS GAME STATE
 # ------------------------------
+class GameState:
+    MAIN_MENU = "main_menu"
+    SETTINGS = "settings"
+    PLAYING = "playing"
+    PAUSED = "paused"
+    GAME_OVER = "game_over"
+# ------------------------------
+# CLASS SETTINGS
+# ------------------------------
+class GameSettings:
+    def __init__(self):
+        self.difficulty = "NORMAL"  # EASY, NORMAL, HARD
+        
+    def get_max_levels(self):
+        """Trả về số level tối đa cho độ khó"""
+        if self.difficulty == "EASY":
+            return 1
+        elif self.difficulty == "NORMAL":
+            return 2
+        elif self.difficulty == "HARD":
+            return 3
+        return 1
+    
+    def get_player_health(self):
+        """Trả về máu ban đầu cho player"""
+        if self.difficulty == "EASY":
+            return 5
+        elif self.difficulty == "NORMAL":
+            return 4
+        elif self.difficulty == "HARD":
+            return 3
+        return 1
+    
+    def apply_difficulty(self, player=None):
+        """Áp dụng độ khó cho game"""
+        if player:
+            player.health = self.get_player_health()
+# ------------------------------
+# CLASS MENU MANAGER
+# ------------------------------
+def render_center(surface, font, text, y, color):
+    surf = font.render(text, True, color)
+    rect = surf.get_rect(center=(WIDTH // 2, y))
+    surface.blit(surf, rect)
+    return rect
+class MenuManager:
+    def __init__(self, screen_width, screen_height):
+        self.screen_width = screen_width
+        self.screen_height = screen_height
+        self.font_large = pygame.font.SysFont("consolas", 48, bold=True)
+        self.font_medium = pygame.font.SysFont("consolas", 32)
+        self.font_small = pygame.font.SysFont("consolas", 20)
+        
+        # Màu sắc mới
+        self.bg_color = (173, 216, 230)  # Baby Blue
+        self.title_color = (0, 0, 0)     # Đen cho tiêu đề
+        self.selected_color = (0, 0, 0)  # Đen cho option được chọn
+        self.normal_color = (255, 255, 255)  # Trắng cho option bình thường
+        self.highlight_color = (0, 100, 200)  # Xanh đậm để highlight độ khó hiện tại
+        self.help_color = (80, 80, 80)   # Xám đậm cho text hướng dẫn
+        
+        self.main_menu_options = ["START GAME", "DIFFICULTY", "QUIT"]
+        self.difficulty_options = ["EASY", "NORMAL", "HARD"]
+        self.difficulty_descriptions = {
+            "EASY": "1 Level, 5 Health",
+            "NORMAL": "2 Levels, 4 Health", 
+            "HARD": "3 Levels, 3 Health"
+        }      
+        self.selected_index = 0
+        self.current_menu = "main"  
+        self._item_rects = []
 
+    def draw (self, surface, current_difficulty):
+        surface.fill(self.bg_color)
+        self._item_rects = []
 
-# Bind free function to Player class for method-style call
-# Player.draw = draw  # (disabled, we call draw(player, ...) instead)
-class Spike:
-    """Gai hướng lên. Dùng rect mỏng để va chạm công bằng hơn."""
+        if self.current_menu == "main":
+            render_center(surface, self.font_large, "TRAP ADVENTURE", 120, self.title_color)
+            base_y = 250
+            for i, label in enumerate(self.main_menu_options):
+                color = self.selected_color if i == self.selected_index else self.normal_color
+                rect = render_center(surface, self.font_medium, label, base_y + i * 70, color)
+                self._item_rects.append(rect)
+                if i == self.selected_index:
+                    surface.blit(self.font_medium.render(">", True, self.selected_color),
+                                    (rect.left - 40, rect.y))
+        else:
+            render_center(surface, self.font_medium, "SELECT DIFFICULTY", 100, self.title_color)
+            base_y = 200
+            for i, label in enumerate(self.difficulty_options):
+                if i == self.selected_index:
+                    color = self.selected_color
+                elif label == current_difficulty:
+                    color = self.highlight_color  # độ khó đang áp dụng
+                else:
+                    color = self.normal_color
 
-    def __init__(self, x, y, active_after_ms=0):
-        self.rect = Rect(x, y + TILE // 2, TILE, TILE // 2)
-        self.activate_at = pygame.time.get_ticks() + active_after_ms
+                rect = render_center(surface, self.font_medium, label, base_y + i * 80, color)
+                self._item_rects.append(rect)
+                render_center(surface, self.font_small, self.difficulty_descriptions[label],
+                                    rect.centery + 30, self.help_color)
+                if i == self.selected_index:
+                    surface.blit(self.font_medium.render(">>", True, self.selected_color),
+                                        (rect.left - 60, rect.y))
 
-    def is_active(self, now_ms):
-        return now_ms >= self.activate_at
+            render_center(surface, self.font_small, "ENTER: Select  |  ESC: Back",
+                                self.screen_height - 50, self.help_color)
+                
+    def handle_mouse_hover(self, mouse_pos):
+        """Highlight option khi di chuột qua"""
+        if self.current_menu == "main":
+            for i, rect in enumerate(self._item_rects):
+                if rect.collidepoint(mouse_pos):
+                    self.selected_index = i
+                    break
+        else:  # difficulty menu
+            for i, rect in enumerate(self._item_rects):
+                if rect.collidepoint(mouse_pos):
+                    self.selected_index = i
+                    break
 
+    def handle_main_menu_mouse(self, mouse_pos, settings):
+        """Xử lý click chuột trên main menu"""
+        for i, rect in enumerate(self._item_rects):
+            if rect.collidepoint(mouse_pos):
+                self.selected_index = i
+                
+                option = self.main_menu_options[i]
+                if option == "START GAME":
+                    return "start_game"
+                elif option == "DIFFICULTY":
+                    self.current_menu = "difficulty"
+                    self.selected_index = self.difficulty_options.index(settings.difficulty)
+                elif option == "QUIT":
+                    return "quit"
+        return None
 
-class Trigger:
-    """Ô kích hoạt ẩn. Khi chạm sẽ gọi callback tạo bẫy."""
+    def handle_difficulty_mouse(self, mouse_pos, settings):
+        """Xử lý click chuột trên difficulty menu"""
+        for i, rect in enumerate(self._item_rects):
+            if rect.collidepoint(mouse_pos):
+                self.selected_index = i
+                settings.difficulty = self.difficulty_options[i]
+                settings.apply_difficulty()
+                self.current_menu = "main"
+                self.selected_index = 1
+                return None
+        return None
 
-    def __init__(self, x, y, on_trigger):
-        self.rect = Rect(x, y, TILE, TILE)
-        self.on_trigger = on_trigger
-        self.triggered = False
+    def handle_input(self, event, settings):
+        """Xử lý cả bàn phím và chuột"""
+        # Xử lý hover chuột
+        if event.type == pygame.MOUSEMOTION:
+            self.handle_mouse_hover(event.pos)
+        
+        # Xử lý click chuột
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:  # Click trái
+            if self.current_menu == "main":
+                return self.handle_main_menu_mouse(event.pos, settings)
+            else:
+                return self.handle_difficulty_mouse(event.pos, settings)
+        
+        # Xử lý bàn phím
+        if event.type == pygame.KEYDOWN:
+            if self.current_menu == "main":
+                return self.handle_main_menu_input(event, settings)
+            else:
+                return self.handle_difficulty_input(event, settings)
+        return None
 
-    def try_trigger(self, player_rect, now_ms):
-        if (not self.triggered) and self.rect.colliderect(player_rect):
-            self.triggered = True
-            self.on_trigger(now_ms)
+    def handle_main_menu_input(self, event, settings):
+        if event.key == pygame.K_UP:
+            self.selected_index = (self.selected_index - 1) % len(self.main_menu_options)
+        elif event.key == pygame.K_DOWN:
+            self.selected_index = (self.selected_index + 1) % len(self.main_menu_options)
+        elif event.key == pygame.K_RETURN:
+            selected_option = self.main_menu_options[self.selected_index]
+            
+            if selected_option == "START GAME":
+                return "start_game"
+            elif selected_option == "DIFFICULTY":
+                self.current_menu = "difficulty"
+                self.selected_index = self.difficulty_options.index(settings.difficulty)
+            elif selected_option == "QUIT":
+                return "quit"
+                
+        elif event.key == pygame.K_ESCAPE:
+            return "quit"
+            
+        return None
 
+    def handle_difficulty_input(self, event, settings):
+        if event.key == pygame.K_UP:
+            self.selected_index = (self.selected_index - 1) % len(self.difficulty_options)
+        elif event.key == pygame.K_DOWN:
+            self.selected_index = (self.selected_index + 1) % len(self.difficulty_options)
+        elif event.key == pygame.K_RETURN:
+            settings.difficulty = self.difficulty_options[self.selected_index]
+            settings.apply_difficulty()
+            self.current_menu = "main"
+            self.selected_index = 1  # Quay lại mục Difficulty trong menu chính
+        elif event.key == pygame.K_ESCAPE:
+            self.current_menu = "main"
+            self.selected_index = 1  # Quay lại mục Difficulty trong menu chính
+        return None
+# ------------------------------
+# CLASS HUD
+# ------------------------------
+class HUD:
+    def __init__(self, player, settings):
+        self.player = player
+        self.settings = settings
+        self.font = pygame.font.SysFont("consolas", 20)
+        
+        # Menu manager
+        self.menu_manager = MenuManager(WIDTH, HEIGHT)
+    
+    def draw_ingame_hud(self, surface, current_level, total_levels):
+        # Tạo chuỗi thông tin trên 1 dòng
+        info_text = f"Health: {self.player.health} | Level: {current_level + 1}/{total_levels} | Difficulty: {self.settings.difficulty}"
 
-class FallingPlatform:
-    def __init__(self, x, y):
-        self.rect = Rect(x, y, TILE, TILE)
-        self.falling = False
-        self.vel_y = 0
-        self._armed_time = None
-        self.delay_ms = 250  # chạm ~0.25s rồi mới rơi
-
-    def arm_if_player_on_top(self, player_rect, now_ms):
-        if self.falling:
-            return
-        # Người chơi đứng trên (tiếp xúc cạnh trên) và chồng ngang > 8px
-        on_top = (
-            player_rect.bottom <= self.rect.top + 2
-            and player_rect.bottom >= self.rect.top - 6
-            and player_rect.right - 8 > self.rect.left
-            and player_rect.left + 8 < self.rect.right
-        )
-        if on_top and self._armed_time is None:
-            self._armed_time = now_ms
-
-    def update(self, now_ms):
-        if self.falling:
-            self.vel_y = min(self.vel_y + GRAVITY, MAX_FALL)
-            self.rect.y += int(self.vel_y)
-        elif self._armed_time is not None and now_ms - self._armed_time >= self.delay_ms:
-            self.falling = True
-
-
+        text_surf = self.font.render(info_text, True, (0, 0, 0))  
+        
+        # Vẽ background cho HUD (cách viền 60px cả trên và trái)
+        bg_x = 60  # Cách trái 60px
+        bg_y = 60  # Cách trên 60px
+        bg_rect = pygame.Rect(bg_x, bg_y, text_surf.get_width() + 20, text_surf.get_height() + 10)
+        pygame.draw.rect(surface, (255, 255, 255, 180), bg_rect)
+        pygame.draw.rect(surface, (0, 0, 0), bg_rect, 2) 
+        
+        text_x = bg_x + 10 
+        text_y = bg_y + 5   
+        surface.blit(text_surf, (text_x, text_y))
+    
+    def draw_menu(self, surface):
+        self.menu_manager.draw(surface, self.settings.difficulty)
+    
+    def handle_menu_input(self, event):
+        return self.menu_manager.handle_input(event, self.settings)
+# ------------------------------
+# CLASS PLAYER
+# ------------------------------
 class Player:
-    def __init__(self, x, y):
-        self.rect = Rect(x, y, 28, 38)
-        self.vel_x = 0.0
-        self.vel_y = 0.0
+    def __init__(self, x, y, initial_health=1):
+        self.rect = Rect(x, y, 36 , 46)
+        self.vel_x = 0
+        self.vel_y = 0
+        self.pos = pygame.Vector2(x, y)
         self.on_ground = False
-        self.coyote_ms = 0
-        self._jump_was_down = False
-        self.direction = 1
-        self.is_running = False
-        self.alive = True
+        self.health = initial_health
+        self.ori_image = pygame.image.load(asset("mask_state.png")).convert_alpha()
+        self.mask = pygame.mask.from_surface(self.ori_image)
+        self.facing_right = True
+        self.dead = False
+        self.moved_by_platform = False
+
+        # --- Animation frames ---
+        self.animations = {
+            "idle": load_frames(asset("idle-effect-sheet.png"), 48, 48, 9),
+            "run": load_frames(asset("running-effect-sheet.png"), 48, 48, 4),
+            "jump": load_frames(asset("jumping-effect-sheet.png"), 48, 48, 3),
+            "die": load_frames(asset("dying-effect-sheet.png"), 48, 48, 7)
+        }
+
+        self.state = "idle"
+        self.frame_index = 0
+        self.frame_speed = 0.25  # default, idle sẽ chậm
+        self.image = self.animations[self.state][self.frame_index]
 
     def handle_input(self, keys):
+        # --- Horizontal movement ---
+        if self.health <= 0:
+            self.vel_x = 0
+            return  # không di chuyển khi đã chết
+
         ax = 0
         if keys[pygame.K_a] or keys[pygame.K_LEFT]:
-            ax -= 1
+            ax -= 1.0
         if keys[pygame.K_d] or keys[pygame.K_RIGHT]:
-            ax += 1
+            ax += 1.0
         self.vel_x = ax * PLAYER_SPEED
-        self.is_running = (ax != 0)
-        if ax != 0:
-            self.direction = 1 if ax > 0 else -1
 
-    def try_jump(self, jump_down, now_ms):
-        jumped = False
-        if jump_down and not self._jump_was_down:
-            if self.on_ground or self.coyote_ms > 0:
-                self.vel_y = JUMP_VEL
-                self.on_ground = False
-                self.coyote_ms = 0
-                jumped = True
-        self._jump_was_down = jump_down
-        return jumped
+        # --- Facing direction ---
+        if self.vel_x > 0:
+            self.facing_right = True
+        elif self.vel_x < 0:
+            self.facing_right = False
+
+        # --- Jump ---
+        if self.on_ground and (keys[pygame.K_w] or keys[pygame.K_UP] or keys[pygame.K_SPACE]):
+            self.vel_y = -JUMP_VEL
+            self.on_ground = False
 
     def apply_gravity(self):
         self.vel_y = min(self.vel_y + GRAVITY, MAX_FALL)
 
     def move_and_collide(self, solids):
-        # --- ngang ---
-        self.rect.x += int(self.vel_x)
-        for s in solids:
-            if self.rect.colliderect(s):
-                if self.vel_x > 0:
-                    self.rect.right = s.left
-                elif self.vel_x < 0:
-                    self.rect.left = s.right
-        # --- dọc ---
-        self.rect.y += int(self.vel_y)
+        # Reset flag
+        self.moved_by_platform = False
         self.on_ground = False
+        prev_rect = self.rect.copy()
+        
+        # ---- DI CHUYỂN NGANG (X) ----
+        self.rect.x += float(self.vel_x)
+        
+        # CHỈ kiểm tra va chạm ngang nếu KHÔNG được platform di chuyển
+        if not self.moved_by_platform:
+            for s in solids:
+                if self.rect.colliderect(s.rect):
+                    if self.vel_x > 0:  # va phải
+                        self.rect.right = s.rect.left
+                    elif self.vel_x < 0:  # va trái
+                        self.rect.left = s.rect.right
+
+        # ---- DI CHUYỂN DỌC (Y) ----
+        self.rect.y += float(self.vel_y)
+        moving_platform = None
+        
         for s in solids:
-            if self.rect.colliderect(s):
-                if self.vel_y > 0:
-                    self.rect.bottom = s.top
+            if self.rect.colliderect(s.rect):
+                # Rơi xuống và chạm mặt đất
+                if prev_rect.bottom <= s.rect.top and self.vel_y >= 0:
+                    self.rect.bottom = s.rect.top
                     self.vel_y = 0
                     self.on_ground = True
-                elif self.vel_y < 0:
-                    self.rect.top = s.bottom
+                    
+                    # KIỂM TRA CÓ PHẢI MOVING PLATFORM KHÔNG
+                    if hasattr(s, 'get_velocity'):
+                        moving_platform = s
+                        
+                # Nhảy lên và đụng trần
+                elif prev_rect.top >= s.rect.bottom and self.vel_y <= 0:
+                    self.rect.top = s.rect.bottom
                     self.vel_y = 0
-        # coyote
-        if self.on_ground:
-            self.coyote_ms = COYOTE_MS
+
+        # ---- XỬ LÝ MOVING PLATFORM SAU KHI DI CHUYỂN ----
+        if moving_platform and self.on_ground:
+            vel = moving_platform.get_velocity()
+            # CHỈ di chuyển player nếu platform thực sự di chuyển
+            if abs(vel.x) > 0 or abs(vel.y) > 0:
+                # ĐÁNH DẤU player đang được platform di chuyển
+                self.moved_by_platform = True
+                self.rect.x += float(vel.x)
+                self.rect.y += float(vel.y)
+
+        # ---- KIỂM TRA NỀN DƯỚI CHÂN ----
+        if not self.on_ground:
+            check_distance = min(int(self.vel_y + GRAVITY) + 2, 10)
+            for s in solids:
+                if s.rect.colliderect(self.rect.move(0, check_distance)):
+                    self.on_ground = True
+                    break
+        
+        # Cập nhật vector vị trí từ rect
+        self.pos.x = self.rect.centerx
+        self.pos.y = self.rect.centery
+
+    def update_state(self):
+    # Nếu đang nhảy hoặc rơi
+        self.rect.center = (int(self.pos.x), int(self.pos.y))
+        if not self.on_ground:
+            self.state = "jump"
+            self.frame_speed = 0.12
         else:
-            self.coyote_ms = max(0, self.coyote_ms - (1000 // FPS))
+            if abs(self.vel_x) > 0.1:
+                self.state = "run"
+                self.frame_speed = 0.15
+            else:
+                self.state = "idle"
+                self.frame_speed = 0.6  
 
-# ------------------------------
-# XÂY DỰNG LEVEL TỪ ASCII
-# ------------------------------
-class Animation:
-    def __init__(self, frames, frame_ms=70, loop=False):
-        self.frames = frames or []
-        self.frame_ms = frame_ms
-        self.loop = loop
-        self.start_ms = pygame.time.get_ticks()
-        self.alive = True
+    def update_animation(self):
+        self.update_state()
+        frames = self.animations[self.state]
+        self.frame_index += self.frame_speed
+        if self.frame_index >= len(frames):
+            self.frame_index = 0
+        self.image = frames[int(self.frame_index)]
+        if not self.facing_right:
+            self.image = pygame.transform.flip(self.image, True, False)
 
-    def current(self, now):
-        if not self.frames: self.alive = False; return None
-        i = (now - self.start_ms) // self.frame_ms
-        if self.loop:
-            i = int(i % len(self.frames))
+    def update_death_animation(self):
+        if self.health <= 0:
+            self.state = "die"
+            frames = self.animations[self.state]
+            self.frame_index += 0.2  # tốc độ animation chết
+            if self.frame_index >= len(frames):
+                self.frame_index = len(frames) - 1  # giữ frame cuối
+            self.image = frames[int(self.frame_index)]
+            if not self.facing_right:
+                self.image = pygame.transform.flip(self.image, True, False)
+            self.dead = True
+
+    def draw(self, surface):
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+# ------------------------------
+# CLASS SPIKE
+# ------------------------------
+class Spike:
+    def __init__(self, x, y):
+        self.rect = Rect(x, y, 36, 36)
+        self.image = pygame.image.load(asset("trap-1.png")).convert_alpha()
+
+    def update(self, player: Player):
+        if self.rect.colliderect(player.rect):
+                player.health -= 1
+                player.vel_y = -8 
+    def draw(self, surface):
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+# ------------------------------
+class HiddenSpike(Spike):
+    """Bẫy ẩn: ban đầu vô hình, khi player chạm thì hiện hình và gây chết ngay."""
+    def __init__(self, x, y, one_time=True):
+        super().__init__(x, y)
+        self.visible = False          # ban đầu ẩn
+        self.one_time = one_time
+        self.triggered = False
+
+    def update(self, player: "Player"):
+        if self.rect.colliderect(player.rect):
+            if not self.triggered:
+                self.visible = True    # hiển thị gai ngay lập tức
+                player.health = 0      # chết ngay
+                player.vel_y = -12      # hiệu ứng bật nhẹ
+                print(f"[HiddenSpike] Bẫy bật tại ({self.rect.x}, {self.rect.y})")
+                if self.one_time:
+                    self.triggered = True
+
+    def draw(self, surface):
+        if self.visible:
+            surface.blit(self.image, (self.rect.x, self.rect.y))
+# ------------------------------
+# CLASS CHECKPOINT
+# ------------------------------
+class Checkpoint:
+    def __init__(self, x, y, world_ref = None, level_id=0):
+        self.rect = Rect(x, y, 48, 48)
+        self.frames = load_frames(asset("activated-checkpoint-sheet.png"), 48, 48, 3)
+        self.frame_index = 0
+        self.frame_speed = 0.15
+        self.image = self.frames[int(self.frame_index)]
+        self.touch_time = None
+        self.activated = False
+        self.delay_ms = 0
+        self.health = 1
+        self.active = True
+        self.world_ref = world_ref
+        self.level_id = level_id
+       # --- hiệu ứng fade ---
+        self.fade_alpha = 255
+        self.fading_out = False
+        self.fading_in = False
+        self.fade_speed = 10  # tốc độ mờ dần mỗi frame
+
+    def take_damage(self):
+        self.health -= 1
+        if self.health <= 0 and not self.fading_out:
+            self.fading_out = True
+            self.active = True
+
+    def handle_fade_effect(self):
+        if self.fading_out:
+            self.fade_alpha -= self.fade_speed
+            if self.fade_alpha <= 0:
+                self.fade_alpha = 0
+                self.fading_out = False
+                self.respawn_at_spawn()
+                self.fading_in = True  # bắt đầu hiện lại
+
+        elif self.fading_in:
+            self.fade_alpha += self.fade_speed
+            if self.fade_alpha >= 255:
+                self.fade_alpha = 255
+                self.fading_in = False
+
+    def respawn_at_spawn(self):
+        if self.world_ref:
+            spawn_x, spawn_y = self.world_ref.player_start
+            self.rect.topleft = (spawn_x, spawn_y)
+            self.health = 1
+
+    def activate(self):
+        self.activated = True
+        print("Checkpoint ready: Press ENTER to continue!")
+
+    def update(self, player: "Player"):
+        now = pygame.time.get_ticks()
+
+        # --- animation loop ---
+        self.frame_index += self.frame_speed
+        if self.frame_index >= len(self.frames):
+            self.frame_index = 0
+        self.image = self.frames[int(self.frame_index)]
+
+        if self.level_id == 0:
+            if self.active and not (self.fading_out or self.fading_in):
+                if self.rect.colliderect(player.rect):
+                    self.take_damage()
+            self.handle_fade_effect()        
+        
+         # Level 1 → có hiệu ứng fade khi bị phá
+        if self.level_id == 0:
+            if self.active and not (self.fading_out or self.fading_in):
+                if self.rect.colliderect(player.rect):
+                    self.take_damage()
+                    if not self.fading_out:  # khi checkpoint biến mất và respawn
+                        self.win()  # Người chơi thắng
+
+            self.handle_fade_effect()
+
+        # Các level khác → checkpoint bình thường
         else:
-            if i >= len(self.frames):
-                i = len(self.frames)-1
-                self.alive = False
-        return self.frames[int(i)]
+            if self.rect.colliderect(player.rect) and not self.activated:
+                if self.touch_time is None:
+                    self.touch_time = now
+            if self.touch_time is not None and not self.activated:
+                if now - self.touch_time >= self.delay_ms:
+                    player.vel_x = 0
+                    player.vel_y = 0
+                    self.activate()
 
-class Fx:
-    def __init__(self, x, y, frames, frame_ms=70, loop=False, vx=0, vy=0, anchor_bottom=True):
-        self.x, self.y = float(x), float(y)
-        self.vx, self.vy = float(vx), float(vy)
-        self.anim = Animation(frames, frame_ms, loop)
-        self.anchor_bottom = anchor_bottom
 
-    def update(self, dt_ms):
-        self.x += self.vx * (dt_ms / 16.666)
-        self.y += self.vy * (dt_ms / 16.666)
+    def draw(self, surface):
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+# ------------------------------
+# CLASS BLOCK
+# ------------------------------
+class Block:
+    def __init__(self, x, y):
+        self.rect = pygame.Rect(x, y, 36, 46)
+        self.image = pygame.image.load(asset("block.png")).convert_alpha()
 
-    def alive(self, now):
-        _ = self.anim.current(now)
-        return self.anim.alive
+    def draw(self, surface):
+        surface.blit(self.image, (self.rect.x, self.rect.y))
+# ------------------------------
+# CLASS PLATFORM
+# ------------------------------
+class MovingPlatform(Block):
+    def __init__(self, x, y, dx=2, dy=0, move_range=100, world_ref=None):
+        super().__init__(x, y)
+        self.start_x = x
+        self.start_y = y
+        self.dx = dx
+        self.dy = dy
+        self.move_range = move_range
+        self.direction = 1
+        self.prev_pos = pygame.Vector2(self.rect.x, self.rect.y)
+        self.world_ref = world_ref
+        self.current_velocity = pygame.Vector2(0, 0)
+        # THÊM: lưu vận tốc dự kiến cho frame tiếp theo
+        self.next_velocity = pygame.Vector2(dx * self.direction, dy * self.direction)
+    
+    def update(self):
+        # Lưu vị trí cũ
+        self.prev_pos.update(self.rect.x, self.rect.y)
+        old_x, old_y = self.rect.x, self.rect.y
 
-    def draw(self, screen, cam_x, now):
-        img = self.anim.current(now)
-        if not img: return
-        x = int(self.x - cam_x - img.get_width()//2)
-        y = int(self.y - img.get_height()) if self.anchor_bottom else int(self.y - img.get_height()//2)
-        screen.blit(img, (x, y))
+        # Tính toán vận tốc cho frame NÀY
+        self.next_velocity = pygame.Vector2(
+            self.dx * self.direction, 
+            self.dy * self.direction
+        )
+        
+        # Di chuyển
+        self.rect.x += self.next_velocity.x
+        self.rect.y += self.next_velocity.y
+
+        # Kiểm tra va chạm
+        if self.world_ref and self.check_collision_with_blocks():
+            self.rect.x, self.rect.y = old_x, old_y
+            self.direction *= -1
+            # Cập nhật lại vận tốc sau khi đổi hướng
+            self.next_velocity = pygame.Vector2(
+                self.dx * self.direction, 
+                self.dy * self.direction
+            )
+        elif abs(self.rect.x - self.start_x) >= self.move_range or abs(self.rect.y - self.start_y) >= self.move_range:
+            self.direction *= -1
+            self.next_velocity = pygame.Vector2(
+                self.dx * self.direction, 
+                self.dy * self.direction
+            )
+
+        # Tính vận tốc thực tế
+        self.current_velocity.x = self.rect.x - self.prev_pos.x
+        self.current_velocity.y = self.rect.y - self.prev_pos.y
+
+    def get_velocity(self):
+        # Trả về vận tốc sẽ di chuyển trong frame TIẾP THEO
+        return self.next_velocity 
+# ------------------------------
+# CLASS WORLD
+# ------------------------------
 class World:
-    def __init__(self, ascii_map):
-        self.blocks: list[Rect] = []
-        self.spikes: list[Spike] = []
-        self.triggers: list[Trigger] = []
-        self.platforms: list[FallingPlatform] = []
-        self.goal: Rect | None = None
+    def __init__(self, ascii_map, bg_path=None, level_id = 0, player_health=1):
+        self.blocks = []
+        self.platform = []
+        self.spikes = []
+        self.triggers = []
+        self.checkpoints = []
         self.player_start = (64, 64)
 
-
+        if bg_path:
+            self.bg_image = pygame.image.load(bg_path).convert()
+        else:
+            self.bg_image = None
 
         for j, row in enumerate(ascii_map):
             for i, ch in enumerate(row):
-                x, y = i * TILE, j * TILE
+                x, y = i*TILE, j*TILE
                 if ch == '#':
-                    self.blocks.append(Rect(x, y, TILE, TILE))
+                    self.blocks.append(Block(x, y))
                 elif ch == '^':
-                    self.spikes.append(Spike(x, y, active_after_ms=0))
-                elif ch == 'T':
-                    # Khi kích hoạt: bật một hàng gai tại vị trí này sau 250ms
-                    def _on_trigger(now_ms, rx=x, ry=y):
-                        self.spikes.append(Spike(rx, ry, active_after_ms=250))
-                    self.triggers.append(Trigger(x, y, _on_trigger))
-                elif ch == 'F':
-                    self.platforms.append(FallingPlatform(x, y))
-                elif ch == 'G':
-                    self.goal = Rect(x, y, TILE, TILE)
+                    self.spikes.append(Spike(x, y))
                 elif ch == 'P':
-                    # đặt người chơi trên sàn (trung bình cell)
-                    self.player_start = (x + TILE // 2 - 14, y + TILE // 2)
-
-        self.level_px_w = len(ascii_map[0]) * TILE
-        self.level_px_h = len(ascii_map) * TILE
+                    self.player_start = (x, y)
+                elif ch == 'C':
+                    self.checkpoints.append(Checkpoint(x, y,world_ref=self, level_id = level_id))
+                elif ch == 'M':
+                    self.blocks.append(MovingPlatform(x,y,dx=2,dy=0,move_range=150))
+                elif ch == 'L':
+                    self.blocks.append(MovingPlatform(x,y,dx=-2,dy=0,move_range=150))
+                elif ch == 'H':
+                    self.spikes.append(HiddenSpike(x, y))   
+        self.player = Player(*self.player_start, initial_health=player_health)
 
     def solids(self):
-        # khối + platform chưa rơi + moving
-        sols = list(self.blocks)
-        sols.extend([p.rect for p in self.platforms if not p.falling])
-        return sols
+        return self.blocks
 
+    def update(self):
+        for b in self.blocks:
+            if isinstance(b, MovingPlatform):
+                    b.update()
+        for sp in self.spikes:
+            sp.update(self.player)
+        for cp in self.checkpoints:
+            cp.update(self.player)
 
+    def draw_background(self, surface):
+        if self.bg_image:
+            surface.blit(self.bg_image, (0,0))
+    def draw(self, surface):
+        for b in self.blocks:
+            b.draw(surface)
+        for sp in self.spikes:
+            sp.draw(surface)
+        for cp in self.checkpoints:
+            cp.draw(surface)
+        self.player.draw(surface)
 # ------------------------------
-# VÒNG LẶP CHÍNH
+# HÀM CHẠY GAME CHÍNH
 # ------------------------------
-STATE_PLAY, STATE_DEAD, STATE_WON = 0, 1, 2
 def run():
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    global ASSETS
-    ASSETS = load_assets()
-    pygame.display.set_caption("Trap-Adventure-like — Starter")
+    pygame.display.set_caption("Trap Adventure")
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont("consolas", 20)
-    big_font = pygame.font.SysFont("consolas", 48)
-
-    world = World(LEVEL_MAP)
-    player = Player(*world.player_start)
-    fx_list: list[Fx] = []
-    last_fly_emit = 0
-    spawned_die_fx = False
-    fx_list: list[Fx] = []
-    last_fly_emit = 0
-    spawned_die_fx = False
-
-    state = STATE_PLAY
-    death_reason = ""
-    debug = False
-    camera_x = 0
-
-    def restart():
-        nonlocal world, player, state, death_reason, camera_x, fx_list, last_fly_emit, spawned_die_fx
-        world = World(LEVEL_MAP)
-        player = Player(*world.player_start)
-        state = STATE_PLAY
-        death_reason = ""
-        camera_x = 0
-        fx_list.clear()
-        last_fly_emit = 0
-        spawned_die_fx = False
-        player.alive = True
-
-    while True:
-        dt_ms = clock.tick(FPS)
-        now = pygame.time.get_ticks()
-
-        for e in pygame.event.get():
-            if e.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            if e.type == pygame.KEYDOWN:
-                if e.key == pygame.K_F1:
-                    debug = not debug
-                if e.key == pygame.K_r:
-                    restart()
-
-        keys = pygame.key.get_pressed()
-        jump_down = keys[pygame.K_SPACE] or keys[pygame.K_z] or keys[pygame.K_UP]
-
-        if state == STATE_PLAY:
-            # điều khiển
-            player.handle_input(keys)
-            did_jump = player.try_jump(jump_down, now)
-            if did_jump and ASSETS.get('fx_jump'):
-                fx_list.append(Fx(player.rect.centerx, player.rect.bottom, ASSETS['fx_jump'], frame_ms=60, loop=False, vy=0, anchor_bottom=True))
-            player.apply_gravity()
-
-            # platform arming (trước khi collide dọc xong ta sẽ set chính xác)
-            for p in world.platforms:
-                p.arm_if_player_on_top(player.rect, now)
-                p.update(now)
-            
-            # flying effect: emit khi đang ở trên không và có vận tốc ngang
-            if (not player.on_ground) and abs(player.vel_x) > 0.3 and ASSETS.get("fx_fly"):
-                if now - last_fly_emit > 90:
-                    spawn_x = player.rect.centerx - (12 if player.vel_x > 0 else -12)
-                    fx_list.append(Fx(spawn_x, player.rect.bottom-4, ASSETS["fx_fly"], frame_ms=60, loop=False, vx=-player.vel_x*0.2))
-                    last_fly_emit = now
-
-# va chạm
-            player.move_and_collide(world.solids())
-
-# camera
-            camera_x = max(0, min(player.rect.centerx - WIDTH // 2, world.level_px_w - WIDTH))
-
-            # triggers
-            for t in world.triggers:
-                t.try_trigger(player.rect, now)
-
-            # update FX
-            for fx in list(fx_list):
-                fx.update(dt_ms)
-                if not fx.is_alive(now):
-                    fx_list.remove(fx)
-
-            # chết vì gai
-            for sp in world.spikes:
-                if sp.is_active(now) and player.rect.colliderect(sp.rect):
-                    if not spawned_die_fx and ASSETS.get("fx_die"):
-                        fx_list.append(Fx(player.rect.centerx, player.rect.bottom, ASSETS["fx_die"], frame_ms=60, loop=False, anchor_bottom=True))
-                        spawned_die_fx = True
-                    if not spawned_die_fx and ASSETS.get("fx_die"):
-                        fx_list.append(Fx(player.rect.centerx, player.rect.bottom, ASSETS["fx_die"], frame_ms=60, loop=False, anchor_bottom=True))
-                        spawned_die_fx = True
-                    state = STATE_DEAD
-                    death_reason = "Bạn dẫm vào gai!"
-                    break
-
-            # rơi khỏi map
-            if player.rect.top > world.level_px_h + 200:
-                if not spawned_die_fx and ASSETS.get("fx_die"):
-                    fx_list.append(Fx(player.rect.centerx, player.rect.bottom, ASSETS["fx_die"], frame_ms=60, loop=False, anchor_bottom=True))
-                    spawned_die_fx = True
-                if not spawned_die_fx and ASSETS.get("fx_die"):
-                    fx_list.append(Fx(player.rect.centerx, player.rect.bottom, ASSETS["fx_die"], frame_ms=60, loop=False, anchor_bottom=True))
-                    spawned_die_fx = True
-                state = STATE_DEAD
-                player.alive = False
-                death_reason = "Bạn rơi xuống vực!"
-
-            # thắng
-            if world.goal and player.rect.colliderect(world.goal):
-                state = STATE_WON
-
-        # ---------------- DRAW ----------------
-        screen.fill(BG)
-
-        # nền xa (ưu tiên ảnh)
-        bg_sky = ASSETS.get("bg_sky")
-        if bg_sky:
-            screen.blit(bg_sky, (0, 0))
-        else:
-            # fallback
-            parallax = int(camera_x * 0.2)
-            for i in range(0, WIDTH + 200, 200):
-                pygame.draw.circle(screen, (30, 34, 40), (i - parallax, 120), 90, 2)
-        bg_hills = ASSETS.get("bg_hills")
-        if bg_hills:
-        # lặp ảnh theo chiều ngang với parallax nhẹ
-            parallax = int(camera_x * 0.3)
-            w = bg_hills.get_width()
-            start = -((camera_x // w) * w) - parallax
-            for x in range(start, WIDTH + w, w):
-                screen.blit(bg_hills, (x, HEIGHT - bg_hills.get_height() - 40))
-
-        # khối tĩnh
-        for b in world.blocks:
-            draw_block(screen, b, camera_x)
-
-        # platform
-        for p in world.platforms:
-            draw_platform(screen, p.rect, camera_x)
-
-# goal
-        if world.goal:
-            draw_goal(screen, world.goal, camera_x)
-
-        # spikes
-        for s in world.spikes:
-            draw_spike_up(screen, s.rect, camera_x, active=s.is_active(now))
-
-        # trigger debug
-        if debug:
-            for t in world.triggers:
-                r = Rect(t.rect.x - camera_x, t.rect.y, t.rect.w, t.rect.h)
-                pygame.draw.rect(screen, (180, 80, 200), r, 2)
-
-        # player
-        draw(player, screen, camera_x)
-
-        # HUD
-        hud = (
-            "A/D hoặc ←/→: di chuyển   Space/Z/↑: nhảy   R: restart   F1: debug"
+    
+    # Khởi tạo
+    settings = GameSettings()
+    
+    game_state = "menu"  # "menu", "playing"
+    current_level_index = 0
+    world = None   
+    hud = HUD(None, settings)
+    running = True
+    
+    def restart_game():
+        nonlocal world, current_level_index
+        player_health = settings.get_player_health()
+        world = World(
+            LEVELS[current_level_index], 
+            bg_path=LEVEL_BGS[current_level_index], 
+            level_id=current_level_index,
+            player_health=player_health
         )
-        hud_surf = font.render(hud, True, WHITE)
-        screen.blit(hud_surf, (16, 8))
+        hud.player = world.player
 
-        if state == STATE_DEAD:
-            txt = big_font.render("BẠN ĐÃ CHẾT", True, RED)
-            info = font.render(death_reason + "  (Nhấn R để chơi lại)", True, WHITE)
-            screen.blit(txt, (WIDTH // 2 - txt.get_width() // 2, 160))
-            screen.blit(info, (WIDTH // 2 - info.get_width() // 2, 220))
-        elif state == STATE_WON:
-            txt = big_font.render("HOÀN THÀNH LEVEL!", True, GREEN)
-            info = font.render("Nhấn R để chơi lại", True, WHITE)
-            screen.blit(txt, (WIDTH // 2 - txt.get_width() // 2, 160))
-            screen.blit(info, (WIDTH // 2 - info.get_width() // 2, 220))
+    def start_new_game():
+        nonlocal world, current_level_index
+        current_level_index = 0
+        player_health = settings.get_player_health()
+        world = World(
+            LEVELS[current_level_index], 
+            bg_path=LEVEL_BGS[current_level_index], 
+            level_id=current_level_index,
+            player_health=player_health
+        )
+        hud.player = world.player
+        print(f"Starting game - Difficulty: {settings.difficulty}, Health: {player_health}")  # Debug
 
+    while running:
+        dt = clock.tick(FPS)
+        
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            
+            if game_state == "menu":
+                result = hud.handle_menu_input(event)
+                if result == "start_game":
+                    start_new_game()
+                    game_state = "playing"
+                elif result == "quit":
+                    running = False
+            elif game_state == "playing":
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        game_state = "menu"  # ESC để về menu
+                    elif event.key == pygame.K_r and world.player.dead:
+                        restart_game()
+        
+        # Gameplay
+        if game_state == "playing" and world:
+            keys = pygame.key.get_pressed()
+
+            world.player.handle_input(keys)
+            world.player.apply_gravity()
+            world.player.move_and_collide(world.solids())
+            world.update()
+
+            # Xử lý checkpoint - CHỈ cho phép chuyển level nếu chưa vượt quá số level cho phép
+            max_levels = settings.get_max_levels()
+            for cp in world.checkpoints:
+                if cp.activated and keys[pygame.K_RETURN]:
+                    if current_level_index < max_levels - 1:  # Chưa đạt level cuối
+                        current_level_index += 1
+                        player_health = world.player.health  # Giữ nguyên máu hiện tại
+                        world = World(
+                            LEVELS[current_level_index], 
+                            bg_path=LEVEL_BGS[current_level_index],
+                            level_id=current_level_index,
+                            player_health=player_health
+                        )
+                        hud.player = world.player
+                        print(f"Advanced to Level {current_level_index + 1}")
+                    else:
+                        # Đã hoàn thành tất cả level
+                        print("Game Completed!")
+                        game_state = "menu"
+                    break
+            
+            # Update animation
+            if world.player.health > 0:
+                world.player.update_animation()
+            else:
+                world.player.update_death_animation()
+        
+        # Drawing
+        screen.fill((0, 0, 0))
+        
+        if game_state == "playing" and world:
+            world.draw_background(screen)
+            world.draw(screen)
+            hud.draw_ingame_hud(screen, current_level_index, len(LEVELS))
+
+            if world.player.dead:
+                death_text = hud.font.render("YOU DIED! Press R to restart", True, (255, 50, 50))
+                death_rect = death_text.get_rect(center=(WIDTH//2, HEIGHT//2))
+                screen.blit(death_text, death_rect)
+        else:
+            hud.draw_menu(screen)
+        
         pygame.display.flip()
-
 
 if __name__ == "__main__":
     run()
