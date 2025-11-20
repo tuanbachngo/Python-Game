@@ -11,7 +11,7 @@ class World:
         self.platform = []
         self.spikes = []
         self.triggers = []
-        self.checkpoints = []
+        self.checkpoints = []        
         self.player_start = (64, 64)
 
         if bg_path:
@@ -29,13 +29,20 @@ class World:
                 elif ch == 'P':
                     self.player_start = (x, y)
                 elif ch == 'C':
-                    self.checkpoints.append(Checkpoint(x, y,world_ref=self, level_id = level_id))
+                    self.checkpoints.append(Checkpoint(x, y,world_ref=self))
+                elif ch == 'F':
+                    self.checkpoints.append(FakeCheckpoint(x, y,world_ref=self))
+                elif ch == 'D':
+                    self.checkpoints.append(DelayCheckpoint(x, y,world_ref=self))
                 elif ch == 'M':
                     self.blocks.append(MovingPlatform(x,y,dx=2,dy=0,move_range=150))
                 elif ch == 'L':
                     self.blocks.append(MovingPlatform(x,y,dx=-2,dy=0,move_range=150))
                 elif ch == 'H':
-                    self.spikes.append(HiddenSpike(x, y))   
+                    self.spikes.append(HiddenSpike(x, y, delay = 15000))
+                elif ch == 'G':
+                    self.spikes.append(HiddenSpike(x, y, delay = 16100))    
+                    
         self.player = Player(*self.player_start, initial_health=player_health)
 
     def solids(self):
@@ -53,6 +60,7 @@ class World:
     def draw_background(self, surface):
         if self.bg_image:
             surface.blit(self.bg_image, (0,0))
+
     def draw(self, surface):
         for b in self.blocks:
             b.draw(surface)
