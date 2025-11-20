@@ -9,131 +9,133 @@ from ..entities.player import Player
 class Spike:
     def __init__(self, x, y):
         self.rect = Rect(x, y, 36, 36)
-        self.image = pygame.image.load(asset("trap-1.png")).convert_alpha()
+        self.frames = load_frames(asset("trap-1-sheet.png"), 48, 48, 2)
+        self.frame_index = 0
+        self.frame_speed = 0.15
+        self.image = self.frames[int(self.frame_index)]
 
     def update(self, player: Player):
+        # Animation frame
+        self.frame_index += self.frame_speed
+        if self.frame_index >= len(self.frames):
+            self.frame_index = 0
+        self.image = self.frames[int(self.frame_index)]
+        # Kiểm tra va chạm
         if self.rect.colliderect(player.rect):
-                player.health -= 1
+                player.health -= 1 if player.health > 0 else 0
                 player.vel_y = -8 
+
     def draw(self, surface):
         surface.blit(self.image, (self.rect.x, self.rect.y))
 # ------------------------------
 class HiddenSpike(Spike):
     """Bẫy ẩn: ban đầu vô hình, khi player chạm thì hiện hình và gây chết ngay."""
-    def __init__(self, x, y, one_time=True):
+    def __init__(self, x, y, delay = 0):
         super().__init__(x, y)
-        self.visible = False          # ban đầu ẩn
-        self.one_time = one_time
-        self.triggered = False
+        self.active = False          # ban đầu ẩn
+        self.delay = delay
+        self.start_time = pygame.time.get_ticks()
 
     def update(self, player: "Player"):
-        if self.rect.colliderect(player.rect):
-            if not self.triggered:
-                self.visible = True    # hiển thị gai ngay lập tức
-                player.health = 0      # chết ngay
-                player.vel_y = -12      # hiệu ứng bật nhẹ
-                print(f"[HiddenSpike] Bẫy bật tại ({self.rect.x}, {self.rect.y})")
-                if self.one_time:
-                    self.triggered = True
+        if not self.active and pygame.time.get_ticks() - self.start_time >= self.delay:
+            self.active = True
+        
+        if self.active and self.rect.colliderect(player.rect):
+            player.health = 0
+            player.vel_y = -12
 
     def draw(self, surface):
-        if self.visible:
+        if self.active:
             surface.blit(self.image, (self.rect.x, self.rect.y))
-
 # ------------------------------
 # CLASS CHECKPOINT
 # ------------------------------
 class Checkpoint:
-    def __init__(self, x, y, world_ref = None, level_id=0):
+    def __init__(self, x, y, world_ref = None):
         self.rect = Rect(x, y, 48, 48)
         self.frames = load_frames(asset("activated-checkpoint-sheet.png"), 48, 48, 3)
         self.frame_index = 0
         self.frame_speed = 0.15
         self.image = self.frames[int(self.frame_index)]
-        self.touch_time = None
         self.activated = False
-        self.delay_ms = 0
-        self.health = 1
-        self.active = True
         self.world_ref = world_ref
-        self.level_id = level_id
-       # --- hiệu ứng fade ---
-        self.fade_alpha = 255
-        self.fading_out = False
-        self.fading_in = False
-        self.fade_speed = 10  # tốc độ mờ dần mỗi frame
-
-    def take_damage(self):
-        self.health -= 1
-        if self.health <= 0 and not self.fading_out:
-            self.fading_out = True
-            self.active = True
-
-    def handle_fade_effect(self):
-        if self.fading_out:
-            self.fade_alpha -= self.fade_speed
-            if self.fade_alpha <= 0:
-                self.fade_alpha = 0
-                self.fading_out = False
-                self.respawn_at_spawn()
-                self.fading_in = True  # bắt đầu hiện lại
-
-        elif self.fading_in:
-            self.fade_alpha += self.fade_speed
-            if self.fade_alpha >= 255:
-                self.fade_alpha = 255
-                self.fading_in = False
-
-    def respawn_at_spawn(self):
-        if self.world_ref:
-            spawn_x, spawn_y = self.world_ref.player_start
-            self.rect.topleft = (spawn_x, spawn_y)
-            self.health = 1
-
-    def activate(self):
-        self.activated = True
-        print("Checkpoint ready: Press ENTER to continue!")
 
     def update(self, player: "Player"):
-        now = pygame.time.get_ticks()
-
-        # --- animation loop ---
+        # Animation frame
         self.frame_index += self.frame_speed
         if self.frame_index >= len(self.frames):
             self.frame_index = 0
         self.image = self.frames[int(self.frame_index)]
-
-        if self.level_id == 0:
-            if self.active and not (self.fading_out or self.fading_in):
-                if self.rect.colliderect(player.rect):
-                    self.take_damage()
-            self.handle_fade_effect()        
         
-         # Level 1 → có hiệu ứng fade khi bị phá
-        if self.level_id == 0:
-            if self.active and not (self.fading_out or self.fading_in):
-                if self.rect.colliderect(player.rect):
-                    self.take_damage()
-                    if not self.fading_out:  # khi checkpoint biến mất và respawn
-                        self.win()  # Người chơi thắng
-
-            self.handle_fade_effect()
-
-        # Các level khác → checkpoint bình thường
-        else:
-            if self.rect.colliderect(player.rect) and not self.activated:
-                if self.touch_time is None:
-                    self.touch_time = now
-            if self.touch_time is not None and not self.activated:
-                if now - self.touch_time >= self.delay_ms:
-                    player.vel_x = 0
-                    player.vel_y = 0
-                    self.activate()
-
+        # Kiểm tra va chạm
+        if not self.activated and self.rect.colliderect(player.rect):
+            self.activated = True
 
     def draw(self, surface):
         surface.blit(self.image, (self.rect.x, self.rect.y))
+# ------------------------------
+# CLASS FAKE CHECKPOINT 
+# ------------------------------
+class FakeCheckpoint(Checkpoint):
+    def __init__(self, x, y, world_ref=None):
+        super().__init__(x, y, world_ref)
+        self.active = True
+        
+        # Hiệu ứng biến mất
+        self.fade_alpha = 150
+        self.fading = False
+    
+    def update(self, player: "Player"):
+        # Animation frame
+        self.frame_index += self.frame_speed
+        if self.frame_index >= len(self.frames):
+            self.frame_index = 0
+        self.image = self.frames[int(self.frame_index)]
+        
+        # Hiệu ứng fade
+        if self.fading:
+            self.fade_alpha -= 10
+            if self.fade_alpha <= 0:
+                self.fade_alpha = 0
+                self.active  = False
+        
+        # Kiểm tra va chạm
+        if self.active  and not self.fading and self.rect.colliderect(player.rect):
+            self.fading = True
+    
+    def draw(self, surface):
+        if self.active :
+            if self.fading:
+                self.image.set_alpha(self.fade_alpha)
+            surface.blit(self.image, (self.rect.x, self.rect.y))
 
+# ------------------------------
+# CLASS DELAY CHECKPOINT
+# ------------------------------
+class DelayCheckpoint(Checkpoint):
+    def __init__(self, x, y, world_ref=None):
+        super().__init__(x, y, world_ref)
+        self.delay = 15400
+        self.start_time = pygame.time.get_ticks()
+        self.exists = False 
+    
+    def update(self, player: "Player"):
+        # Kiểm tra thời gian xuất hiện
+        if not self.exists and pygame.time.get_ticks() - self.start_time >= self.delay:
+            self.exists = True
+        
+        if self.exists:
+            self.frame_index += self.frame_speed
+            if self.frame_index >= len(self.frames):
+                self.frame_index = 0
+            self.image = self.frames[int(self.frame_index)]
+
+            if not self.activated and self.rect.colliderect(player.rect):
+                self.activated = True
+
+    def draw(self, surface):
+        if self.exists:
+            surface.blit(self.image, (self.rect.x, self.rect.y))
 # ------------------------------
 # CLASS BLOCK
 # ------------------------------
