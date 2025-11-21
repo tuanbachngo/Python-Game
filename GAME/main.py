@@ -23,6 +23,7 @@ def run():
 
     def restart_game(): 
         nonlocal world, current_level_index
+        delay = 0
         player_health = settings.get_player_health()
         world = World(
             LEVELS[current_level_index], 
@@ -31,12 +32,12 @@ def run():
             player_health=player_health
         )
         hud.player = world.player
-        delay = 0
 
     def start_new_game():
         nonlocal world, current_level_index
         current_level_index = 0
         player_health = settings.get_player_health()
+        delay = 0
         world = World(
             LEVELS[current_level_index], 
             bg_path=LEVEL_BGS[current_level_index], 
@@ -44,8 +45,7 @@ def run():
             player_health=player_health
         )
         hud.player = world.player
-        delay = 0
-
+        
     while running:
         dt = clock.tick(FPS)
         current = pygame.time.get_ticks()
@@ -100,30 +100,31 @@ def run():
             world.player.handle_input(keys)
             world.player.apply_gravity()
             world.player.move_and_collide(world.solids())
-            world.update()
+            world.update(dt)
 
-            # Xử lý checkpoint 
             max_levels = settings.get_max_levels()
             for cp in world.checkpoints:
                 if cp.activated and not world.player.dead:
-                    if current_level_index < max_levels - 1:  # Chưa đạt level cuối
+
+                    if current_level_index < max_levels - 1:
                         current_level_index += 1
-                        player_health = world.player.health  # Giữ nguyên máu hiện tại
+                        player_health = world.player.health
+
                         world = World(
-                            LEVELS[current_level_index], 
-                            bg_path=LEVEL_BGS[current_level_index],
-                            level_id=current_level_index,
-                            player_health=player_health
-                        )
+                                LEVELS[current_level_index],
+                                bg_path=LEVEL_BGS[current_level_index],
+                                level_id=current_level_index,
+                                player_health=player_health
+                            )
                         hud.player = world.player
+
                     else:
                         if world.player.health <= 0 and delay == 0:
-                            delay = current
-                        if current - delay > 700: # đăth 1 giây chờ sau khi chết
-                            game_state = "win"
+                                delay = current
+                        if current - delay > 700:
+                                game_state = "win"
                     break
             
-            # Update animation
             if world.player.health > 0:
                 world.player.update_animation()
             else:
