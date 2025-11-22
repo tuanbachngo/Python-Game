@@ -13,16 +13,19 @@ def run():
     
     # Khởi tạo
     settings = GameSettings()
-    
     game_state = "menu"  # "menu", "playing", "game_over", "win"
     current_level_index = 0
     world = None   
-    hud = HUD(None, settings)
+    hud = HUD (None, settings)
     running = True
     delay = 0
 
+    # Trạng thái nhạc
+    menu_music_playing = False
+    game_music_playing = False
+
     def restart_game(): 
-        nonlocal world, current_level_index
+        nonlocal world, current_level_index, delay
         delay = 0
         player_health = settings.get_player_health()
         world = World(
@@ -32,9 +35,11 @@ def run():
             player_health=player_health
         )
         hud.player = world.player
+        hud.stop_menu_music()  
+        hud.play_game_music()
 
     def start_new_game():
-        nonlocal world, current_level_index
+        nonlocal world, current_level_index, delay
         current_level_index = 0
         player_health = settings.get_player_health()
         delay = 0
@@ -45,6 +50,8 @@ def run():
             player_health=player_health
         )
         hud.player = world.player
+        hud.stop_menu_music()  
+        hud.play_game_music()
         
     while running:
         dt = clock.tick(FPS)
@@ -59,6 +66,12 @@ def run():
                 hud.update_hover(event.pos)
 
             if game_state == "menu":
+                if not menu_music_playing:
+                    hud.play_menu_music()
+                    menu_music_playing = True
+                    hud.stop_game_music()
+                    game_music_playing = False
+
                 result = hud.handle_menu_input(event)
                 if result == "start_game":
                     start_new_game()
@@ -67,15 +80,19 @@ def run():
                     running = False
                     
             elif game_state == "playing":
+                if not game_music_playing:
+                    hud.play_game_music()
+                    game_music_playing = True
+                    hud.stop_menu_music()
+                    menu_music_playing = False
+
                 # Xử lý phím ESC
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    print("ESC pressed - Quay về menu chính")
                     game_state = "menu"
                 
                 # Xử lý click chuột vào nút settings
                 elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     if hud.check_settings_click(event.pos):
-                        print("Click bánh răng cưa - Quay về menu chính")
                         game_state = "menu"
                 
                 # Xử lý phím R khi player chết
@@ -90,8 +107,16 @@ def run():
                     game_state = "menu"     
 
             elif game_state == "win":
-                if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                    game_state = "menu"
+                if game_music_playing:
+                    hud.stop_game_music()
+                    game_music_playing = False
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_r:
+                        start_new_game()
+                        game_state = "playing"
+                    elif event.key == pygame.K_ESCAPE:
+                        game_state = "menu"
 
         # Gameplay
         if game_state == "playing" and world:
@@ -103,12 +128,21 @@ def run():
             world.update(dt)
 
             max_levels = settings.get_max_levels()
+            
             for cp in world.checkpoints:
                 if cp.activated and not world.player.dead:
-
-                    if current_level_index < max_levels - 1:
+                    if not hasattr(cp, "sound_played"):
+                        cp.sound_played = False
+                    if not cp.sound_played:
+                        hud.play_checkpoint_sound()
+                        cp.sound_played = True
+                    if current_level_index < max_levels - 1:                        
                         current_level_index += 1
+                        delay = 0                       
                         player_health = world.player.health
+
+                        if world and world.player:
+                            world.player.stop_running_sound()
 
                         world = World(
                                 LEVELS[current_level_index],
@@ -117,6 +151,8 @@ def run():
                                 player_health=player_health
                             )
                         hud.player = world.player
+                        hud.stop_game_music()
+                        hud.play_game_music()
 
                     else:
                         if world.player.health <= 0 and delay == 0:
@@ -125,14 +161,16 @@ def run():
                                 game_state = "win"
                     break
             
-            if world.player.health > 0:
-                world.player.update_animation()
-            else:
-                world.player.update_death_animation()
-                if world.player.health <= 0 and delay == 0:
+            if world.player.health <= 0:
+                if delay == 0:
                     delay = current
-                if current - delay > 700: # đăth 1 giây chờ sau khi chết
+                    hud.stop_game_music()
+                    hud.play_game_over_sound()
+                world.player.update_death_animation()
+                if current - delay > 700:
                     game_state = "game_over"
+            else:
+                world.player.update_animation()
         
         # Drawing
         screen.fill((0, 0, 0))
@@ -140,7 +178,7 @@ def run():
         if game_state == "playing" and world:
             world.draw_background(screen)
             world.draw(screen)
-            hud.draw_ingame_hud(screen, current_level_index, len(LEVELS))
+            hud.draw_ingame_hud(screen, current_level_index)
 
         elif game_state == "game_over" and world:
             # Vẽ game đóng băng ở background
@@ -169,7 +207,7 @@ def run():
             win_rect = win_text.get_rect(center=(WIDTH//2, HEIGHT//2 - 50))
             screen.blit(win_text, win_rect)
             
-            restart_text = hud.font.render("Press R to Restart or ESC for Main Menu", True, (255, 255, 255))
+            restart_text = hud.font.render("Press ESC for Main Menu", True, (255, 255, 255))
             restart_rect = restart_text.get_rect(center=(WIDTH//2, HEIGHT//2 + 50))
             screen.blit(restart_text, restart_rect)
             
