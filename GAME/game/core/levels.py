@@ -67,7 +67,7 @@ LEVELS = [
         "OOOOO~~~~~~~~~~~~OOO",
         "OOOOO~~~~~~~~~~~~OOO",
         "OOOOO~~~~~~~~~~~~OOO",
-        "OOOOO~~~~~~~~~~~~OOO",
+        "OOOOO~A~~A~~A~~A~OOO",
     ],
     [ 
         "####################",
@@ -102,4 +102,5 @@ LEVEL_BGS = [
     asset("bg-1.png"),
     asset("bg_sea.png"),
     asset("bg-3.png")
+
 ]
