@@ -3,7 +3,7 @@
 ## 1. Giới thiệu project
 
 ### Mục tiêu
-- Xây dựng một game platformer 2D đơn giản bằng Python/Pygame, phù hợp cho môn học lập trình/game dev cơ bản.
+- Xây dựng một game platformer 2D đơn giản bằng Python/Pygame.
 - Thể hiện đầy đủ vòng đời một game: menu, lựa chọn độ khó, gameplay nhiều màn, thắng/thua, âm thanh – hiệu ứng – HUD. 
 
 ### Tính năng chính
@@ -64,9 +64,9 @@ Bạn có thể đổi mô tả công việc cho sát đúng thực tế nhóm.
 
 ### 3.1. Yêu cầu môi trường
 
-- Python: khuyến nghị **Python 3.10** (3.9+ đều có thể, tùy thư viện).
+- Python: khuyến nghị **Python 3.10**.
 - Đã cài `pip`.
-- Đã cài các dependency hệ thống cơ bản của Pygame (tùy hệ điều hành).
+- Đã cài các dependency hệ thống cơ bản của Pygame.
 
 Cấu trúc thư mục quan trọng:
 - `config.py` trỏ thư mục assets tới `pygame_assets/`, vì vậy cần giữ nguyên cấu trúc:
@@ -77,7 +77,7 @@ Cấu trúc thư mục quan trọng:
 
 ### 3.2. Cài đặt thư viện
 
-Trong file `requirements.txt` :
+Trong file `requirements.txt`:
 
 ```txt
 pygame
