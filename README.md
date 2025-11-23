@@ -77,8 +77,9 @@ Cấu trúc thư mục quan trọng:
 
 ### 3.2. Cài đặt thư viện
 
-Tạo file `requirements.txt` (nếu chưa có), tối thiểu:
+Trong file `requirements.txt` :
 
 ```txt
 pygame
+pyinstaller
 
