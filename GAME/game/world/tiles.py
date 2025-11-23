@@ -440,7 +440,7 @@ class Water:
 class BubbleSpout:
     def __init__(self, x, y):
         # 6 frame, mỗi frame 96x48, giống main3
-        self.frames = load_frames(asset("fish_bubble.png"), 96, 48, 6)
+        self.frames = load_frames(asset("fish_bubble.png"), 96, 48, 7)
         self.frame_index = 0
         self.anim_speed = 0.035
         self.anim_timer = 0.0
@@ -838,4 +838,5 @@ def spawn_arrow_traps(ascii_map, tile_size=TILE):
                 initial_activate_delay = (pair_index % 2) * 1000
                 arrow.activate_start_time = now + initial_activate_delay
                 traps.append(arrow)
+
     return traps
