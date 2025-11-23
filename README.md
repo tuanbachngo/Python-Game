@@ -46,17 +46,16 @@
 ## 2. Đóng góp của từng thành viên
 
 
-| STT | Họ và tên           | Phần công việc chính                                                                 | Tỷ lệ đóng góp (%) |
-|-----|---------------------|--------------------------------------------------------------------------------------|---------------------|
-| 1   | Ngô Tuấn Bách       | Thiết kế ý tưởng game, xây dựng loop chính trong `main.py`, quản lý trạng thái game |  … %                |
-| 2   | Đỗ Quang Huy        | Xây dựng hệ thống World/Map, xử lý va chạm, quản lý trap & checkpoint               |  … %                |
-| 3   | Trần Diệp Đình Anh  | Lập trình nhân vật Player (di chuyển, nhảy, bơi, animation, âm thanh bước chân…)    |  … %                |
-| 4   | Dương Hồng Ánh      | Thiết kế HUD, menu, hệ thống độ khó, hiển thị thông tin và điều khiển trong game    |  … %                |
-| 5   | Vũ Anh Dũng         | Thiết kế level (ASCII map), bố trí bẫy/nước/stone/moving wall, cân bằng độ khó      |  … %                |
-| 6   | Vũ Anh Dũng         | Thiết kế đồ họa, âm thanh, viết tài liệu (README, báo cáo), hỗ trợ debug & tối ưu   |  … %                |
-|     | **Tổng cộng**       |                                                                                      | **100%**           |
+| STT | Họ và tên           | Phần công việc chính                                                                                 | Tỷ lệ đóng góp (%)  |
+|-----|---------------------|------------------------------------------------------------------------------------------------------|---------------------|
+| 1   | Ngô Tuấn Bách       | Thiết kế HUD, menu, hiển thị, xây dựng loop chính trong `main.py`, xây dựng trap level 1,5 và Player |  17.5 %             |
+| 2   | Đỗ Quang Huy        | Thiết kế ý tưởng game, xử lý va chạm, xây dựng trap level 2, 3, 4 và Player                          |  17.5 %             |
+| 3   | Dương Hồng Ánh      | Xây dựng trap level 5                                                                                |  16.1 %             |
+| 4   | Nguyễn Minh Thư     | Thiết kế HUD, menu, hệ thống độ khó, hiển thị, tạo app                                               |  16.1 %             |
+| 5   | Trần Diệp Đình Anh  | Xây dựng hệ thống World/Map, Làm slide trình bày dự án                                               |  16.1 %             |
+| 6   | Vũ Anh Dũng         | Thiết kế đồ họa, âm thanh, hiệu ứng chuyển động Player. Thiết kế slide                               |  16.7 %             |
+|     | **Tổng cộng**       |                                                                                                      | **100%**            |
 
-Bạn có thể đổi mô tả công việc cho sát đúng thực tế nhóm.
 
 ---
 
