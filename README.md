@@ -4,13 +4,27 @@
 
 ### 1.1. Mục tiêu
 
-Dự án xây dựng một game platformer 2D bằng Python và thư viện Pygame, với mục tiêu:
+Dự án được xây dựng với mục tiêu chính là áp dụng và thực hành **lập trình hướng đối tượng (OOP)** trong một môi trường thực tế — cụ thể là một trò chơi platformer 2D sử dụng Python và thư viện Pygame. Toàn bộ cấu trúc game được thiết kế xoay quanh mô hình OOP nhằm phát triển:
 
-- Thực hành các khái niệm lập trình hướng đối tượng, xử lý sự kiện, vòng lặp game, quản lý trạng thái. 
-- Minh họa cách tổ chức một project game tương đối hoàn chỉnh: tách module (core, world, entities, ui, utils), tách dữ liệu level và asset. 
-- Xây dựng một trò chơi có chiều sâu vừa phải: nhiều loại bẫy, cơ chế “troll”, độ khó thay đổi theo chế độ chơi.
+- **Phân rã hệ thống** thành các lớp rõ ràng: `Player`, `World`, `Tile`, `HUD`, `MenuManager`, `GameSettings`, v.v.
+- **Tách biệt trách nhiệm (Single Responsibility)**:  
+  - `Player` chỉ quản lý chuyển động, va chạm, animation, âm thanh nhân vật.  
+  - `World` chịu trách nhiệm đọc ASCII map, sinh vật thể, quản lý bẫy, cập nhật môi trường.  
+  - `HUD` và `MenuManager` xử lý giao diện.  
+  - `GameSettings` quản lý độ khó và thông số gameplay.  
+- **Tính đóng gói (Encapsulation)**: mỗi lớp tự xử lý dữ liệu và logic của chính nó; ví dụ, `Player` tự kiểm soát velocity, gravity, sound channel, frame animation.  
+- **Tính kế thừa và mở rộng (Extensibility)**: hệ thống tile/trap trong `tiles.py` được thiết kế để dễ dàng thêm loại bẫy mới chỉ bằng cách tạo class mới.  
+- **Tính tái sử dụng (Reusability)**: các module như `load_frames()` dùng lại cho mọi animation.  
+- **Tách tài nguyên (Separation of Assets & Logic)** thông qua `config.py` và thư mục `pygame_assets/`.
 
-Game hướng tới việc vừa giải trí, vừa là minh chứng kỹ thuật cho môn học / đồ án lập trình game.
+Bên cạnh yêu cầu kỹ thuật OOP, dự án còn hướng tới:
+
+- Rèn luyện cách tổ chức một project game hoàn chỉnh, chia module đúng chuẩn.
+- Hiểu quy trình phát triển game: vòng lặp game, xử lý input, cập nhật trạng thái, render khung hình.
+- Kết hợp nhiều thành phần: AI đơn giản (bẫy), vật lý (gravity, va chạm), âm thanh, animation, HUD.
+- Tạo ra một sản phẩm game có thể chơi được, có nhiều level, có độ thử thách và tính giáo dục.
+
+Mục tiêu cuối cùng là **vận dụng kiến thức OOP theo cách trực quan nhất**, nhìn thấy ngay kết quả bằng hình ảnh/âm thanh thay vì chỉ qua lý thuyết hoặc các ví dụ console đơn giản.
 
 ### 1.2. Tổng quan lối chơi
 
@@ -48,20 +62,26 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 
 - Level được định nghĩa bằng list các chuỗi trong `LEVELS`, mỗi ký tự là một loại ô:
   - `#`: block cứng
+  - `B`: half block
   - `P`: vị trí spawn của Player
   - `C`: checkpoint
   - `F`: fake checkpoint
+  - `D`: delay checkpoint
   - `N`: fake block
-  - `M`, `L`: moving platform
+  - `E`: level gate
+  - `M`, `L`: moving platform theo hướng
   - `^`, `v`, `<`, `>`: spike theo hướng
-  - `+`: sóng / tide
+  - `G`, `H`: delay spike
+  - `+`: sóng 
   - `~`: nước
   - `W`: tường
   - `S`: đá lăn
   - `X`: tường di chuyển
   - `Q`: switch
-  - v.v. 
-- Mỗi level có background riêng trong `LEVEL_BGS` để tạo cảm giác môi trường thay đổi (ví dụ: đất liền, biển, v.v.). 
+  - `A`: arrow
+  - `R`: bubble spout
+  - `S`: stone
+  - Mỗi level có background riêng trong `LEVEL_BGS` để tạo cảm giác môi trường thay đổi (ví dụ: đất liền, biển, v.v.). 
 
 #### Nhân vật người chơi (Player)
 
@@ -89,16 +109,34 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 
 ### 1.4. Điểm nhấn của project
 
-- Tách bạch rõ ràng giữa:
-  - Logic game (`game/core`, `game/world`, `game/entities`)
-  - Giao diện người dùng (`game/ui`)
-  - Asset (`pygame_assets/`)
-- Sử dụng ASCII map để định nghĩa level → dễ mở rộng, chỉnh sửa, thêm bẫy mới.
-- Có hệ thống độ khó ảnh hưởng trực tiếp đến số lượng level được chơi và sức khỏe nhân vật.
-- Có đầy đủ vòng đời game:
-  - Menu chính → Gameplay → Game Over / Win → quay lại menu.
-- Tích hợp animation + âm thanh tương đối đầy đủ, giúp game có trải nghiệm trực quan và sống động hơn so với một demo console đơn giản.
+- **Thiết kế theo hướng đối tượng, tách bạch rõ ràng các lớp và module:**
+  - Logic game: `game/core`, `game/world`, `game/entities`  
+    - Chứa các lớp như `GameSettings`, `World`, `Player`, các loại `Tile`/trap,… chịu trách nhiệm về luật chơi, va chạm, cập nhật trạng thái.
+  - Giao diện người dùng: `game/ui`  
+    - `HUD`, `MenuManager` tách riêng toàn bộ phần hiển thị, menu, HUD ra khỏi logic gameplay.
+  - Tài nguyên: `pygame_assets/`  
+    - Hình ảnh, âm thanh, font được truy cập gián tiếp qua `config.py` → logic không phụ thuộc đường dẫn cứng.
 
+- **Khai thác OOP để dễ mở rộng và bảo trì:**
+  - Mỗi loại đối tượng (nhân vật, block, trap, stone, moving wall, nước, sóng, checkpoint,…) được biểu diễn bằng class riêng hoặc nhóm class cùng “họ”.
+  - Khi muốn thêm bẫy mới hoặc hiệu ứng mới, chỉ cần tạo class mới hoặc mở rộng class sẵn có, không phải sửa hàng loạt chỗ trong code.
+
+- **Sử dụng ASCII map để định nghĩa level**, kết hợp với lớp `World` đọc map và sinh đối tượng:
+  - Mỗi ký tự trong map tương ứng với một loại tile/class cụ thể.
+  - Cách tổ chức này thể hiện rõ tính trừu tượng: level chỉ là “dữ liệu”, còn cách xử lý/trả về đối tượng đã được đóng gói trong code.
+
+- **Hệ thống độ khó do lớp `GameSettings` quản lý tập trung:**
+  - Quy định số level tối đa, số máu ban đầu theo từng chế độ `EASY / NORMAL / HARD`.
+  - Dễ chỉnh, dễ mở rộng (chỉ sửa một nơi), thể hiện đúng tinh thần đóng gói & tái sử dụng của OOP.
+
+- **Vòng đời game rõ ràng qua các trạng thái (state) được quản lý trong code:**
+  - `menu` → `playing` → `game_over` / `win` → quay lại `menu`.
+  - Mỗi trạng thái có phần xử lý input, update, render tách riêng → dễ đọc, dễ bảo trì.
+
+- **Tích hợp animation + âm thanh theo từng đối tượng:**
+  - `Player` tự quản lý animation và âm thanh di chuyển/nhảy/bơi.
+  - `HUD`/`MenuManager` tự quản lý nhạc nền, âm thắng/thua.
+  → Mỗi lớp chịu trách nhiệm cho “hành vi” của chính nó, giúp dự án là một ví dụ trực quan cho OOP chứ không chỉ là một game đơn thuần.
 
 ---
 
