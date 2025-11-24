@@ -3,7 +3,6 @@
 
 <video width="640" controls>
   <source src="Trap Adventure Game App/pygame_assets/Giới thiệu cách chơi.mp4" type="video/mp4">
-  Your browser does not support the video tag.
 </video>
 
 ## 1. Giới thiệu project
