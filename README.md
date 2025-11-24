@@ -1,6 +1,8 @@
 # Trap Adventure / Bird Adventure (Pygame Platformer)
 <img src="Trap%20Adventure%20Game%20App/pygame_assets/running-effect-sheet.png" width="500">
 
+[**File Game**](https://drive.google.com/file/d/1itWkI5URVnEascOHMXjfENm_-OekIkjb/view?usp=drive_link)
+
 ## 1. Giới thiệu project
 
 ### 1.1. Mục tiêu
@@ -250,4 +252,3 @@ pyinstaller --onefile --windowed --add-data "pygame_assets:pygame_assets”  mai
 - trên Windows dùng dấu `;`, trên Mac/Linux dùng `:`
 6. Chạy app game:
   - vào thư mục `dist` ấn `main.exe` hoặc `main.app`
- [Tải từ Google Drive](https://drive.google.com/file/d/1itWkI5URVnEascOHMXjfENm_-OekIkjb/view?usp=drive_link)
