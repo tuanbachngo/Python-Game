@@ -2,7 +2,8 @@
 <img src="Trap%20Adventure%20Game%20App/pygame_assets/running-effect-sheet.png" width="500">
 
 [**Ấn để tải game**](https://drive.google.com/file/d/1q-SRLNmyAQc1Sp-8WuP5X6r6jaYhfO-k/view?usp=drive_link)
-[**Hướng dẫn**](https://drive.google.com/file/d/1Lt-JoCPA9rayShr3KIa73dPrUhbN1GUr/view?usp=drive_link)
+
+[**VID Hướng dẫn**](https://drive.google.com/file/d/1Lt-JoCPA9rayShr3KIa73dPrUhbN1GUr/view?usp=drive_link)
 
 ## 1. Giới thiệu project
 
