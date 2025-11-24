@@ -2,44 +2,103 @@
 
 ## 1. Giới thiệu project
 
-### Mục tiêu
-- Xây dựng một game platformer 2D đơn giản bằng Python/Pygame.
-- Thể hiện đầy đủ vòng đời một game: menu, lựa chọn độ khó, gameplay nhiều màn, thắng/thua, âm thanh – hiệu ứng – HUD. 
+### 1.1. Mục tiêu
 
-### Tính năng chính
-- Màn hình menu:
-  - Tiêu đề game, lựa chọn: `START GAME`, `DIFFICULTY`, `QUIT`.
-  - Menu phụ chọn độ khó: `EASY`, `NORMAL`, `HARD`, kèm mô tả số mạng và số level tương ứng. 
-- Hệ thống độ khó:
-  - Thay đổi số lượng level tối đa và số máu ban đầu của nhân vật theo `EASY / NORMAL / HARD`.   
-- Nhiều loại địa hình và bẫy:
-  - Block thường, block nửa ô, block kết nối, tường dọc, platform di chuyển.
-  - Gai thường, gai ẩn, mũi tên trap, tường đổ – vỡ, đá lăn, nước – sóng, bong bóng đẩy nhân vật, switch kích hoạt,… 
-- Checkpoint & fake checkpoint:
-  - Checkpoint thật giúp sang level mới.
-  - Fake checkpoint và fake block tạo hiệu ứng “bẫy tâm lý”, biến mất khi chạm.
-- Nhiều level được mô tả bằng ASCII map:
-  - Mỗi ký tự biểu diễn một loại ô/bẫy: `#`, `P`, `C`, `F`, `N`, `M`, `L`, `^`, `v`, `<`, `>`, `+`, `~`, `W`, `S`, `X`, `Q`, `R`, `E`, `A`,… 
-- HUD & âm thanh:
-  - Hiển thị Health, Level, Difficulty, nút Settings.
-  - Nhạc menu, nhạc gameplay, nhạc thắng, thua, âm thanh trap, bước chân, nhảy, bơi, rung màn hình khi đá lăn,… 
+Dự án xây dựng một game platformer 2D bằng Python và thư viện Pygame, với mục tiêu:
 
-### Cách hoạt động tổng quát
+- Thực hành các khái niệm lập trình hướng đối tượng, xử lý sự kiện, vòng lặp game, quản lý trạng thái. :contentReference[oaicite:0]{index=0}  
+- Minh họa cách tổ chức một project game tương đối hoàn chỉnh: tách module (core, world, entities, ui, utils), tách dữ liệu level và asset. :contentReference[oaicite:1]{index=1} :contentReference[oaicite:2]{index=2}  
+- Xây dựng một trò chơi có chiều sâu vừa phải: nhiều loại bẫy, cơ chế “troll”, độ khó thay đổi theo chế độ chơi.
 
-- Khi chạy `main.py`, game khởi tạo cửa sổ kích thước `960 x 480`, FPS 60. 
-- Vào menu chính:
-  - Chọn `START GAME` để bắt đầu.
-  - Chọn `DIFFICULTY` để đổi độ khó, sau đó `ENTER` để áp dụng.
-  - Chọn `QUIT` để thoát.
-- Khi vào game:
-  - `World` đọc ASCII map, sinh ra block, trap, checkpoint, nước, đá lăn, tường, mũi tên,… và tạo `Player` tại vị trí ký tự `P`. 
-  - Mỗi frame:
-    - Xử lý input (di chuyển, nhảy,…), áp dụng gravity, kiểm tra va chạm với các vật thể rắn.
-    - Cập nhật trap, stone, moving wall, tide, water, switch, bubble, arrow trap.
-    - Kiểm tra checkpoint/level gate để sang level tiếp theo hoặc Win nếu là level cuối theo độ khó hiện tại.
-    - Nếu máu về 0: phát animation chết, chuyển sang màn `GAME OVER`. 
-- Trạng thái game chính:
-  - `menu` → `playing` → `win` hoặc `game_over`, có thể quay lại menu bằng `ESC`. 
+Game hướng tới việc vừa giải trí, vừa là minh chứng kỹ thuật cho môn học / đồ án lập trình game.
+
+### 1.2. Tổng quan lối chơi
+
+Người chơi điều khiển một nhân vật di chuyển trong môi trường 2D dạng tile, né bẫy và tìm cách đến được checkpoint hoặc cổng thoát để sang màn tiếp theo. Toàn bộ level được mô tả bằng **ASCII map**, mỗi ký tự tương ứng với một loại ô (block, gai, checkpoint, nước, đá, tường, v.v.). :contentReference[oaicite:3]{index=3}  
+
+Vòng lặp chính của game:
+
+- Khởi tạo Pygame, tạo cửa sổ kích thước `960x480`, đặt FPS = 60. :contentReference[oaicite:4]{index=4}  
+- Hiển thị **menu chính**, cho phép:
+  - Bắt đầu game (`START GAME`)
+  - Chọn độ khó (`DIFFICULTY`)
+  - Thoát (`QUIT`) :contentReference[oaicite:5]{index=5}  
+- Khi vào chơi:
+  - Tải level tương ứng, sinh `World` từ dữ liệu `LEVELS` và background `LEVEL_BGS`. :contentReference[oaicite:6]{index=6} :contentReference[oaicite:7]{index=7}  
+  - Tạo nhân vật `Player` tại vị trí ký tự `P` với số máu phụ thuộc vào độ khó. :contentReference[oaicite:8]{index=8} :contentReference[oaicite:9]{index=9}  
+  - Mỗi frame: xử lý input, áp dụng gravity, xử lý va chạm, cập nhật trap, kiểm tra thắng/thua và vẽ lại màn hình. :contentReference[oaicite:10]{index=10}  
+
+Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. Nếu vượt qua hết level ứng với độ khó hiện tại, game chuyển sang trạng thái `WIN`. :contentReference[oaicite:11]{index=11}  
+
+### 1.3. Các tính năng chính
+
+#### Hệ thống menu và độ khó
+
+- **Menu chính**:
+  - Hiển thị tiêu đề game, các lựa chọn `START GAME`, `DIFFICULTY`, `QUIT`.
+  - Hỗ trợ điều khiển bằng cả phím và chuột (di chuyển, enter, hover & click). :contentReference[oaicite:12]{index=12}  
+- **Menu độ khó**:
+  - 3 mức: `EASY`, `NORMAL`, `HARD`, đi kèm mô tả (số level và số máu). :contentReference[oaicite:13]{index=13}  
+  - Class `GameSettings` quyết định:
+    - Số level tối đa được chơi (`get_max_levels`)
+    - Số level hiển thị trên HUD (`get_display_max`)
+    - Số máu ban đầu của nhân vật (`get_player_health`) :contentReference[oaicite:14]{index=14}  
+
+#### Hệ thống level & bẫy
+
+- Level được định nghĩa bằng list các chuỗi trong `LEVELS`, mỗi ký tự là một loại ô:
+  - `#`: block cứng
+  - `P`: vị trí spawn của Player
+  - `C`: checkpoint
+  - `F`: fake checkpoint
+  - `N`: fake block
+  - `M`, `L`: moving platform
+  - `^`, `v`, `<`, `>`: spike theo hướng
+  - `+`: sóng / tide
+  - `~`: nước
+  - `W`: tường
+  - `S`: đá lăn
+  - `X`: tường di chuyển
+  - `Q`: switch
+  - v.v. :contentReference[oaicite:15]{index=15}  
+- Mỗi level có background riêng trong `LEVEL_BGS` để tạo cảm giác môi trường thay đổi (ví dụ: đất liền, biển, v.v.). :contentReference[oaicite:16]{index=16}  
+
+#### Nhân vật người chơi (Player)
+
+- Di chuyển trái/phải, nhảy, ngồi/cúi, bơi trong nước, tương tác với platform di chuyển. :contentReference[oaicite:17]{index=17}  
+- Áp dụng gravity và giới hạn tốc độ rơi, có xử lý riêng khi ở dưới nước (gravity nhẹ hơn, rơi chậm hơn). :contentReference[oaicite:18]{index=18}  
+- Hệ thống va chạm chi tiết:
+  - Va chạm theo trục X, Y, xử lý đứng trên platform (kể cả platform di chuyển).
+  - Theo dõi trạng thái `on_ground` để quyết định nhảy/animation. :contentReference[oaicite:19]{index=19}  
+- Hệ thống animation:
+  - Các trạng thái: `idle`, `run`, `jump`, `sit`, `die`, `swim_idle`, `swimming`, load từ sprite sheet. :contentReference[oaicite:20]{index=20} :contentReference[oaicite:21]{index=21}  
+  - Flip trái/phải theo hướng di chuyển, cập nhật frame theo tốc độ khung hình. :contentReference[oaicite:22]{index=22}  
+- Hệ thống âm thanh:
+  - Âm chân chạy, âm nhảy, âm bơi, sử dụng channel riêng để không bị chồng chéo. :contentReference[oaicite:23]{index=23} :contentReference[oaicite:24]{index=24}  
+
+#### HUD & âm thanh nền
+
+- HUD hiển thị:
+  - Health hiện tại
+  - Level hiện tại / tổng level theo độ khó
+  - Chế độ Difficulty đang dùng
+- Có nút Settings (icon bánh răng) ở góc, được highlight khi hover, click để quay lại menu. :contentReference[oaicite:25]{index=25} :contentReference[oaicite:26]{index=26}  
+- Hệ thống âm thanh:
+  - Nhạc menu, nhạc gameplay, âm game over, âm thắng.
+  - Âm trap (spear), điều khiển bằng nhiều `Channel` khác nhau để tránh đè âm. :contentReference[oaicite:27]{index=27}  
+
+### 1.4. Điểm nhấn của project
+
+- Tách bạch rõ ràng giữa:
+  - Logic game (`game/core`, `game/world`, `game/entities`)
+  - Giao diện người dùng (`game/ui`)
+  - Asset (`pygame_assets/`)
+- Sử dụng ASCII map để định nghĩa level → dễ mở rộng, chỉnh sửa, thêm bẫy mới.
+- Có hệ thống độ khó ảnh hưởng trực tiếp đến số lượng level được chơi và sức khỏe nhân vật.
+- Có đầy đủ vòng đời game:
+  - Menu chính → Gameplay → Game Over / Win → quay lại menu.
+- Tích hợp animation + âm thanh tương đối đầy đủ, giúp game có trải nghiệm trực quan và sống động hơn so với một demo console đơn giản.
+
 
 ---
 
