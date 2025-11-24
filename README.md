@@ -94,7 +94,21 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
   - Các trạng thái: `idle`, `run`, `jump`, `sit`, `die`, `swim_idle`, `swimming`, load từ sprite sheet.   
   - Flip trái/phải theo hướng di chuyển, cập nhật frame theo tốc độ khung hình. 
 - Hệ thống âm thanh:
-  - Âm chân chạy, âm nhảy, âm bơi, sử dụng channel riêng để không bị chồng chéo. 
+  - Âm chân chạy, âm nhảy, âm bơi, sử dụng channel riêng để không bị chồng chéo.
+ 
+#### Hệ thống điều khiển nhân vật (Controls)
+
+- Di chuyển sang trái: `A` hoặc `←`
+- Di chuyển sang phải: `D` hoặc `→`
+- Nhảy: `W`, `↑` hoặc `Space`
+- Ngồi / Cúi xuống: `Shift`, `S` hoặc `↓`
+- Bơi trong nước: tự động kích hoạt khi nhân vật ở trong vùng nước; có thể nhảy nhẹ bằng `Space`
+- Reset khi chết: `R`
+- Mở menu / Thoát về Menu chính: `ESC`
+- Chọn nút trong Menu: 
+  - Dùng `↑ / ↓` để di chuyển
+  - `Enter` để chọn
+  - Hoặc bấm chuột trực tiếp vào nút
 
 #### HUD & âm thanh nền
 
@@ -220,10 +234,8 @@ python3 -m venv venv (macOs / Linux)
 ```
 3. Kích hoạt venv
 ```
-# Windows:
-venv\Scripts\activate
-# macOS / Linux:
-source venv/bin/activate
+venv\Scripts\activate (Win)
+source venv/bin/activate (macOs / Linux)
 ```
 - Test lại: `python main.py` 
 - Lỗi trong quá trình kích hoạt venv (nếu có với Win):
@@ -244,4 +256,3 @@ pyinstaller --onefile --windowed --add-data "pygame_assets:pygame_assets”  mai
 - trên Windows dùng dấu `;`, trên Mac/Linux dùng `:`
 6. Chạy app game:
   - vào thư mục `dist` ấn `main.exe` hoặc `main.app`
-
