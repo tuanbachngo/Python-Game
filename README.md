@@ -1,5 +1,5 @@
 # Trap Adventure / Bird Adventure (Pygame Platformer)
-<img src="Trap%20Adventure%20Game%20App/pygame_assets/running-effect-sheet.png" width="600">
+<img src="Trap%20Adventure%20Game%20App/pygame_assets/running-effect-sheet.png" width="500">
 ## 1. Giới thiệu project
 
 ### 1.1. Mục tiêu
