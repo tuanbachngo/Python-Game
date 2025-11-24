@@ -163,14 +163,47 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 - Python: khuyến nghị **Python 3.10**.
 - Đã cài `pip`.
 - Đã cài các dependency hệ thống cơ bản của Pygame.
+- Cấu trúc thư mục quan trọng:
+```txt
+├── main.py                 # File chạy chính của game
+├── config.py               # Cấu hình BASE_DIR, ASSETS_DIR, hàm asset()
+├── requirements.txt        # Danh sách thư viện cần cài (pygame, ...)
+├── README.md               # Tài liệu mô tả project
+├── .gitignore              # Bỏ qua file/thu mục không cần commit
 
-Cấu trúc thư mục quan trọng:
-- `config.py` trỏ thư mục assets tới `pygame_assets/`, vì vậy cần giữ nguyên cấu trúc:
-  - Thư mục cùng cấp `main.py`
-    - `config.py`
-    - `game/` (source code)
-    - `pygame_assets/` (ảnh, font, âm thanh). 
+├── game/                   # Mã nguồn chính của game (theo OOP)
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── constants.py    # Kích thước màn hình, FPS, GRAVITY, SPEED, ...
+│   │   ├── settings.py     # Lớp GameSettings: EASY/NORMAL/HARD, máu, số level
+│   │   └── levels.py       # Định nghĩa LEVELS, LEVEL_BGS (ASCII map và background)
+│   │
+│   ├── entities/
+│   │   ├── __init__.py
+│   │   └── player.py       # Lớp Player: di chuyển, nhảy, bơi, animation, âm thanh
+│   │
+│   ├── ui/
+│   │   ├── __init__.py
+│   │   ├── hud.py          # HUD hiển thị Health, Level, Difficulty, nút Settings
+│   │   └── menu.py         # MenuManager: menu chính, menu chọn độ khó
+│   │
+│   ├── utlis/
+│   │   ├── __init__.py
+│   │   └── load.py         # Hàm load_frames() cắt sprite sheet thành các frame animation
+│   │
+│   └── world/
+│       ├── __init__.py
+│       ├── world.py        # Lớp World: đọc map, sinh tile, trap, cập nhật thế giới
+│       └── tiles.py        # Định nghĩa các loại Tile: block, spike, water, stone, ...
 
+├── pygame_assets/          # Tài nguyên game (truy cập qua config.asset())
+│   ├── images/             # Hình nền, sprite nhân vật, tile, ...
+│   ├── sounds/             # Nhạc nền, âm nhảy, âm chạy, âm trap, ...
+│   └── fonts/              # Font (vd: super_mario_bros_2.ttf)
+
+└── dist/                   # Thư mục chứa file .exe build bằng PyInstaller
+    └── Bird Adventure.exe  # App Game
+```
 ### 3.2. Cài đặt thư viện
 
 Trong file `requirements.txt`:
@@ -178,4 +211,4 @@ Trong file `requirements.txt`:
 ```txt
 pygame
 pyinstaller
-
+```
