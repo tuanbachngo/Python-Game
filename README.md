@@ -208,3 +208,10 @@ Cài đặt toàn bộ thư viện bằng:
 ```txt
 pip install -r requiremnts.txt
 ```
+
+### 3.2. Cài đặt các file cần thiết
+Cài đặt toàn bộ file assets bằng:
+
+```txt
+python download.py
+```
