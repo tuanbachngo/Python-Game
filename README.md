@@ -205,10 +205,8 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
     └── Bird Adventure.exe  # App Game
 ```
 ### 3.2. Cài đặt thư viện
-
-Trong file `requirements.txt`:
+Cài đặt toàn bộ thư viện bằng:
 
 ```txt
-pygame
-pyinstaller
+pip install -r requiremnts.txt
 ```
