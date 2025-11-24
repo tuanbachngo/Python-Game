@@ -167,7 +167,6 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 ├── config.py               # Cấu hình BASE_DIR, ASSETS_DIR, hàm asset()
 ├── requirements.txt        # Danh sách thư viện cần cài (pygame, ...)
 ├── README.md               # Tài liệu mô tả project
-├── .gitignore              # Bỏ qua file/thu mục không cần commit
 
 ├── game/                   # Mã nguồn chính của game (theo OOP)
 │   ├── core/
@@ -199,8 +198,6 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 │   ├── sounds/             # Nhạc nền, âm nhảy, âm chạy, âm trap, ...
 │   └── fonts/              # Font (vd: super_mario_bros_2.ttf)
 
-└── dist/                   # Thư mục chứa file .exe build bằng PyInstaller
-    └── Bird Adventure.exe  # App Game
 ```
 ### 3.2. Cài đặt thư viện
 Cài đặt toàn bộ thư viện bằng:
@@ -209,9 +206,39 @@ Cài đặt toàn bộ thư viện bằng:
 pip install -r requiremnts.txt
 ```
 
-### 3.2. Cài đặt các file cần thiết
+### 3.3. Cài đặt các file cần thiết
 Cài đặt toàn bộ file assets bằng:
 
 ```txt
 python download.py
+```
+
+
+### 3.4. Cài đặt app
+1. Mở file `main.py`
+2. Tạo môi trường venv (không bắt buộc nhưng nên có để giữ cô lập thư viện của project) 
+```txt
+# Tạo venv
+python -m venv venv
+```
+3. Kích hoạt venv
+```
+# Windows:
+venv\Scripts\activate
+# macOS / Linux:
+source venv/bin/activate
+```
+- Test lại: python main.py or run thẳng trong file code
+- Lỗi trong quá trình kích hoạt venv (nếu có):
+```
+PowerShell bị khóa quyền chạy script nên không cho chạy activate.pps1(running scripts is disabled on this system) vì Python dùng bản toàn hệ thống (system Python) và Pygame không được cài trong system Python → game không chạy
+Cách 1: mở cmd trong folder tổng r kích hoạt venv: venv\Scripts\activate.bat
+Cách 2: mở powershell bằng quyền Administrator rồi chạy: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CururrentUser
+```
+4. 
+# Cài thư viện
+pip install -r requirements.txt
+
+# Chạy game
+python main.py
 ```
