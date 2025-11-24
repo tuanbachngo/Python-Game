@@ -216,14 +216,7 @@ Cài đặt toàn bộ thư viện bằng:
 pip install -r requiremnts.txt
 ```
 
-### 3.3. Cài đặt các assets cần thiết
-Cài đặt toàn bộ file assets bằng:
-
-```txt
-python download.py
-```
-
-### 3.4. Cách tạo app
+### 3.3. Cách tạo app
 1. Mở file `main.py`
 2. Tạo môi trường venv (không bắt buộc nhưng nên có để giữ cô lập thư viện của project) 
 ```txt
