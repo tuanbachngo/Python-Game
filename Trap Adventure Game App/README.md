@@ -1,5 +1,5 @@
 # Trap Adventure / Bird Adventure (Pygame Platformer)
-![Screenshot](pygame_assets/mask_state.png)
+![Screenshot](pygame_assets/dying-effect-sheet.png)
 ## 1. Giới thiệu project
 
 ### 1.1. Mục tiêu
