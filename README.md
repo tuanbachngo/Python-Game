@@ -2,6 +2,7 @@
 <img src="Trap%20Adventure%20Game%20App/pygame_assets/running-effect-sheet.png" width="500">
 <video width="640" controls>
   <source src="Trap Adventure Game App/pygame_assets/VID giới thiệu.mp4" type="video/mp4">
+<video>
 
 [**Ấn để tải game**](https://drive.google.com/file/d/1q-SRLNmyAQc1Sp-8WuP5X6r6jaYhfO-k/view?usp=drive_link)
 
