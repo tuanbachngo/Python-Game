@@ -254,3 +254,6 @@ pyinstaller --onefile --windowed --add-data "pygame_assets:pygame_assets”  mai
 - trên Windows dùng dấu `;`, trên Mac/Linux dùng `:`
 6. Chạy app game:
   - vào thư mục `dist` ấn `main.exe` hoặc `main.app`
+ 
+## 4. Video Hướng Dẫn chơi game
+[***VID Hướng dẫn***](https://drive.google.com/file/d/1Lt-JoCPA9rayShr3KIa73dPrUhbN1GUr/view?usp=drive_link)
