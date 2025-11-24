@@ -2,6 +2,7 @@ import pygame
 from game.core import WIDTH, HEIGHT, FPS, GameSettings, LEVELS, LEVEL_BGS
 from game.ui import HUD
 from game.world import World 
+from config import asset
 # ------------------------------
 # HÀM CHẠY GAME CHÍNH
 # ------------------------------
@@ -10,6 +11,8 @@ def run():
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Trap Adventure")
     clock = pygame.time.Clock()
+    icon = pygame.image.load(asset("icon.png"))   # load icon từ assets
+    pygame.display.set_icon(icon)   # set icon cửa sổ
     
     settings = GameSettings()
     game_state = "menu" 
