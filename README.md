@@ -253,6 +253,6 @@ pyinstaller --onefile --windowed --add-data "pygame_assets:pygame_assets”  mai
   - vào thư mục `dist` ấn `main.exe` hoặc `main.app`
  
 ## 4. Video Hướng Dẫn chơi game và GAME
-####[**VID Hướng dẫn**](https://drive.google.com/file/d/1Lt-JoCPA9rayShr3KIa73dPrUhbN1GUr/view?usp=drive_link)
+[**VID Hướng dẫn chơi game**](https://drive.google.com/file/d/1Lt-JoCPA9rayShr3KIa73dPrUhbN1GUr/view?usp=drive_link)
 
-####[**Ấn để tải game**](https://drive.google.com/file/d/1q-SRLNmyAQc1Sp-8WuP5X6r6jaYhfO-k/view?usp=drive_link)
+[**Ấn để tải game**](https://drive.google.com/file/d/1q-SRLNmyAQc1Sp-8WuP5X6r6jaYhfO-k/view?usp=drive_link)
