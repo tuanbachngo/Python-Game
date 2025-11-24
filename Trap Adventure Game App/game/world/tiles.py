@@ -222,7 +222,6 @@ class MovingPlatform(Block):
             self.next_velocity = pygame.Vector2(self.dx * self.direction, 0)
 
         self.current_velocity.x = self.rect.x - self.prev_pos.x
-        self.current_velocity.y = 0
 
     def get_velocity(self):
         return self.current_velocity  
@@ -235,9 +234,6 @@ class Connected_Block(Block):
 class Half_Block(Block):
     def __init__(self, x, y):
         super().__init__(x,y+36,"half_block.png")
-
-    def draw(self, surface, ox = 0, oy = 0):
-        surface.blit(self.image, (self.rect.x + ox, self.rect.y + oy))
 # ------------------------------
 # CLASS ARROW
 # ------------------------------
@@ -716,4 +712,5 @@ def spawn_arrow_traps(ascii_map, tile_size=TILE):
                 initial_activate_delay = (pair_index % 2) * 1000
                 arrow.activate_start_time = now + initial_activate_delay
                 traps.append(arrow)
+
     return traps
