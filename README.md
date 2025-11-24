@@ -166,7 +166,6 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 ├── main.py                 # File chạy chính của game
 ├── config.py               # Cấu hình BASE_DIR, ASSETS_DIR, hàm asset()
 ├── requirements.txt        # Danh sách thư viện cần cài (pygame, ...)
-├── README.md               # Tài liệu mô tả project
 
 ├── game/                   # Mã nguồn chính của game (theo OOP)
 │   ├── core/
@@ -194,11 +193,8 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 │       └── tiles.py        # Định nghĩa các loại Tile: block, spike, water, stone, ...
 
 ├── pygame_assets/          # Tài nguyên game (truy cập qua config.asset())
-│   ├── images/             # Hình nền, sprite nhân vật, tile, ...
-│   ├── sounds/             # Nhạc nền, âm nhảy, âm chạy, âm trap, ...
-│   └── fonts/              # Font (vd: super_mario_bros_2.ttf)
-
 ```
+
 ### 3.2. Cài đặt thư viện
 Cài đặt toàn bộ thư viện bằng:
 
@@ -206,19 +202,21 @@ Cài đặt toàn bộ thư viện bằng:
 pip install -r requiremnts.txt
 ```
 
-### 3.3. Cài đặt các file cần thiết
+### 3.3. Cài đặt các assets cần thiết
 Cài đặt toàn bộ file assets bằng:
 
 ```txt
 python download.py
 ```
 
-### 3.4. Cài đặt app
+### 3.4. Cách tạo app
 1. Mở file `main.py`
 2. Tạo môi trường venv (không bắt buộc nhưng nên có để giữ cô lập thư viện của project) 
 ```txt
 # Tạo venv
-python -m venv venv
+python -m venv venv (Win)
+hoặc
+python3 -m venv venv (macOs / Linux)
 ```
 3. Kích hoạt venv
 ```
@@ -228,19 +226,22 @@ venv\Scripts\activate
 source venv/bin/activate
 ```
 - Test lại: `python main.py` 
-- Lỗi trong quá trình kích hoạt venv (nếu có):
+- Lỗi trong quá trình kích hoạt venv (nếu có với Win):
 ```
 PowerShell bị khóa quyền chạy script nên không cho chạy activate.pps1(running scripts is disabled on this system) vì Python dùng bản toàn hệ thống (system Python) và Pygame không được cài trong system Python → game không chạy
 Cách 1: mở cmd trong folder tổng r kích hoạt venv: venv\Scripts\activate.bat
 Cách 2: mở powershell bằng quyền Administrator rồi chạy: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CururrentUser
 ```
-4. 
-# Cài lại thư viện
+4. Cài lại thư viện
 ```
 pip install -r requirements.txt
 ```
 5. Đóng gói bằng PyInstaller
 ```
-pyinstaller --onefile --windowed --add-data "pygame_assets;pygame_assets”  main.py
+pyinstaller --onefile --windowed --add-data "pygame_assets;pygame_assets”  main.py (Win)
+pyinstaller --onefile --windowed --add-data "pygame_assets:pygame_assets”  main.py (macOs / Linux)
 ```
+- trên Windows dùng dấu `;`, trên Mac/Linux dùng `:`
+6. Chạy app game:
+  - vào thư mục `dist` ấn `main.exe` hoặc `main.app`
 
