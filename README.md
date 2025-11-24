@@ -161,8 +161,6 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 ### 3.1. Yêu cầu môi trường
 
 - Python: khuyến nghị **Python 3.10**.
-- Đã cài `pip`.
-- Đã cài các dependency hệ thống cơ bản của Pygame.
 - Cấu trúc thư mục quan trọng:
 ```txt
 ├── main.py                 # File chạy chính của game
