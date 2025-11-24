@@ -13,7 +13,7 @@ class Spike:
         self.rect = Rect(x, y, 36, 36)
         self.frames = load_frames(asset("trap-1-sheet.png"), 48, 48, 2)
         self.frame_index = 0
-        self.frame_speed = 0.15 # tạo hiệu ứng chuyển giữa các frame cho mượt
+        self.frame_speed = 0.15 
         self.direction = direction
         self.image = self._rotate(self.frames[int(self.frame_index)])
 
@@ -66,7 +66,7 @@ class Spike:
 class HiddenSpike(Spike):
     def __init__(self, x, y, delay = 0):
         super().__init__(x, y,direction="UP")
-        self.active = False          # ban đầu ẩn
+        self.active = False    
         self.delay = delay
         self.start_time = pygame.time.get_ticks()
 
@@ -186,8 +186,7 @@ class DelayCheckpoint(Checkpoint):
 class LevelGate(Checkpoint):
     def __init__(self, x, y):
         super().__init__(x,y)
-        self.image = pygame.Surface((TILE, TILE), pygame.SRCALPHA)
-        self.mask = pygame.mask.from_surface(self.image)
+        self.image = pygame.Surface((TILE, TILE), pygame.SRCALPHA) # Thay hình Checkpoint bằng ô vuông vô hình 
 # ------------------------------
 # CLASS BLOCK
 # ------------------------------
@@ -714,3 +713,4 @@ def spawn_arrow_traps(ascii_map, tile_size=TILE):
                 traps.append(arrow)
 
     return traps
+
