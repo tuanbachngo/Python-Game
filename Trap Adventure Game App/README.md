@@ -179,7 +179,7 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 ```txt
 ├── main.py                 # File chạy chính của game
 ├── config.py               # Cấu hình BASE_DIR, ASSETS_DIR, hàm asset()
-├── requirements.txt        # Danh sách thư viện cần cài (pygame, ...)
+├── requirements.txt        # Danh sách thư viện cần cài (pygame, pyinstaller)
 
 ├── game/                   # Mã nguồn chính của game (theo OOP)
 │   ├── core/
