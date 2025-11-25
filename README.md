@@ -76,7 +76,6 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
   - `G`, `H`: delay spike
   - `+`: sóng 
   - `~`: nước
-  - `W`: tường
   - `S`: đá lăn
   - `X`: tường di chuyển
   - `Q`: switch
