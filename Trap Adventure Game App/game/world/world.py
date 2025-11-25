@@ -1,6 +1,6 @@
 import pygame
 from .tiles import Block, MovingPlatform, Spike, HiddenSpike, Checkpoint, FakeCheckpoint, DelayCheckpoint, LevelGate # Level 1
-from .tiles import Tide, Water, Wall, Connected_Block, Half_Block, Stone, Moving_wall, spawn_arrow_traps, ScreenShake # Level 2
+from .tiles import Tide, Water, Connected_Block, Half_Block, Stone, Moving_wall, spawn_arrow_traps, ScreenShake # Level 2
 from .tiles import Switch, BubbleSpout, FakeBlock
 from ..entities.player import Player
 TILE = 48 
@@ -16,8 +16,7 @@ class World:
         self.water = []           
         self.switches = []
         self.bubble_spouts = []  
-        self.is_full_underwater = (level_id == 4)
-        self.walls = []           
+        self.is_full_underwater = (level_id == 4)        
         self.stones = []         
         self.shake = ScreenShake()
         self.fragments = []       
@@ -81,8 +80,6 @@ class World:
                     self.switches.append(Switch(x, y))
                 elif ch == 'R':      # bubble
                     self.bubble_spouts.append(BubbleSpout(x, y))
-                elif ch == 'W':      # tường rắn
-                    self.walls.append(Wall(x, y))
                 elif ch == 'S':      # đá lăn
                     stone = Stone(x, y)
                     stone.trigger1_x = 90
@@ -102,7 +99,7 @@ class World:
             self.player.swim_leave_time = None
 
     def solids(self):
-        return self.blocks + self.walls + self.fragments 
+        return self.blocks  + self.fragments 
 
     def update(self, dt):
         for b in self.blocks:
@@ -161,8 +158,6 @@ class World:
             surface.blit(self.bg_image, (0, 0))
 
         ox, oy = self.shake.get_offset()
-        for w in self.walls:
-            w.draw(surface)
         for sp in self.spikes:
             sp.draw(surface)
         for st in self.stones:
@@ -184,4 +179,5 @@ class World:
         for spout in self.bubble_spouts:
             spout.draw(surface, ox, oy)
                 
+
         self.player.draw(surface, ox, oy)
