@@ -581,13 +581,6 @@ class Moving_wall:
 class Solid_Fragment:
     def __init__(self, x, y):
         self.rect = pygame.Rect(x, y, 48, 44)
-class Wall:
-    def __init__(self, x, y):
-        self.rect = pygame.Rect(x, y, 19, 48)
-        self.image = pygame.image.load(asset("vertical_wall.png")).convert_alpha()
-
-    def draw(self, surface):
-        surface.blit(self.image, (self.rect.x, self.rect.y))        
 # ------------------------------
 # CLASS ROLLING_STONE
 # ------------------------------
@@ -713,4 +706,5 @@ def spawn_arrow_traps(ascii_map, tile_size=TILE):
                 traps.append(arrow)
 
     return traps
+
 
