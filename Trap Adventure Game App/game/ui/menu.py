@@ -1,5 +1,4 @@
 import pygame
-from ..core.constants import WIDTH
 from config import asset
 
 class MenuManager:
@@ -32,7 +31,7 @@ class MenuManager:
 
     def render_center(self, surface, font, text, y, color):
         surf = font.render(text, True, color)
-        rect = surf.get_rect(center=(WIDTH // 2, y))
+        rect = surf.get_rect(center=(self.screen_width // 2, y))
         surface.blit(surf, rect)
         return rect # Trả về rect để sử dụng cho việc phát hiện va chạm chuột
     
@@ -170,4 +169,5 @@ class MenuManager:
                 return self.handle_main_menu_input(event, settings)
             else:
                 return self.handle_difficulty_input(event, settings)
+
         return None
