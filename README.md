@@ -162,7 +162,7 @@ Khi người chơi mất hết máu, game chuyển sang màn hình `GAME OVER`. 
 |-----|---------------------|------------------------------------------------------------------------------------------------------|---------------------|
 | 1   | Ngô Tuấn Bách       | Thiết kế HUD, menu, hiển thị, xây dựng loop chính trong `main.py`, xây dựng trap level 1,5 và Player |  17.9 %             |
 | 2   | Đỗ Quang Huy        | Thiết kế ý tưởng game, xử lý va chạm, xây dựng trap level 2, 3, 4 và Player                          |  17.9 %             |
-| 3   | Dương Hồng Ánh      | Xây dựng trap level 5                                                                                |  16.7 %             |
+| 3   | Dương Hồng Ánh      | Xây dựng trap level 5, nghĩ ý tưởng trap level 3, 4, làm slide dự án                                 |  16.7 %             |
 | 4   | Nguyễn Minh Thư     | Thiết kế HUD, menu, hệ thống độ khó, hiển thị, tạo app                                               |  16.7 %             |
 | 5   | Trần Diệp Đình Anh  | Xây dựng hệ thống World/Map, Làm slide trình bày dự án                                               |  14 %               |
 | 6   | Vũ Anh Dũng         | Thiết kế đồ họa, âm thanh, hiệu ứng chuyển động Player. Thiết kế slide                               |  16.7 %             |
